@@ -47,14 +47,22 @@ def calculate_time_limit(rover, x, y, phi):
 	return time_limit
 
 def calculate_angularVelocity(rover, trg_phi, time_limit):
+	global constant_angularVelocity
+
 	d_phi = trg_phi - rover.phi
 
 	if time_limit != 0:
 		omega = float(d_phi/time_limit)
+		if (abs(omega) > constant_angularVelocity):
+			omega = constant_angularVelocity*(omega/abs(omega))
+			time_to_rotate = float(d_phi/omega)
+		else:
+			time_to_rotate = -1.0
 	else:
 		omega = 0
+		time_to_rotate = -1.0
 
-	return omega
+	return omega, time_to_rotate
 
 def calculate_linearVelocity1(rover, x, y):
 	global constant_linearVelocity
@@ -126,11 +134,20 @@ def main():
 
 		iteration = int(time_limit/time_frame)
 		print("number of iteration:", iteration, sep = " ")
-		last_iter_duration = float(time_limit - iteration*time_frame)
-		print("last_iter_duration:", last_iter_duration, sep=" ")
+		last_iteration_duration1 = float(time_limit - iteration*time_frame)
+		print("last_iteration_duration1:", last_iteration_duration1, sep=" ")
 
-		omega = calculate_angularVelocity(rover, trg_phi, time_limit)
+		omega, time_to_rotate = calculate_angularVelocity(rover, trg_phi, time_limit)
+
+		if (time_to_rotate == -1.0):
+			time_to_rotate = time_limit
+			last_iteration_duration2 = last_iteration_duration1
+		else:
+			last_iteration_duration2= float(time_to_rotate - iteration*time_frame)
+
 		print("omega (in degree/s) is: ", omega/pi*180, sep = " ")
+		print("last_iteration_duration2:", last_iteration_duration2, sep=" ")
+
 
 		input("Press enter to continue.")
 		print("Start running.")
@@ -191,15 +208,15 @@ def main():
 
 		rapi.send_spd(ser, v_0, v_1, v_2, 0)
 
-		# delay for last_iter_duration
-		sleep(last_iter_duration)
+		# delay for last_iteration_duration1
+		sleep(last_iteration_duration1)
 
 		print("Going straight: v_0: ", v_0, ", v_1: ", v_1, ", v_2: ", v_2)
 
 		if (omega != 0 ):
 			# turning
 
-			rover.update_coor(v_x*last_iter_duration, v_y*last_iter_duration, 0)	
+			rover.update_coor(v_x*last_iteration_duration1, v_y*last_iteration_duration1, 0)	
 			rover.print_coor()
 
 			v_0, v_1, v_2 = calculate_wheelVelocity(0, 0, omega)
@@ -210,13 +227,12 @@ def main():
 
 			rapi.send_spd(ser, v_0, v_1, v_2, 0)
 
-			rover.update_coor(0, 0, omega*last_iter_duration)
+			rover.update_coor(0, 0, omega*last_iteration_duration2)
+			print("Turning: v_0: ", v_0, ", v_1: ", v_1, ", v_2: ", v_2)
 			rover.print_coor()
 
-			# delay for last_iter_duration
-			sleep(last_iter_duration)
-
-
+			# delay for last_iteration_duration1
+			sleep(last_iteration_duration2)
 
 		# reset the state of the rover back to (0, 0, 0) for easy debugging.
 		rapi.send_spd(ser, 0, 0, 0, 1)
