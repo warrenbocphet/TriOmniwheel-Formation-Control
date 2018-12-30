@@ -1,11 +1,13 @@
 from time import time, sleep
 import serial
-import rapi0
+import rapi
 from math import pi,sin,cos,sqrt,acos
 
 resolution = 8
-constant_linearVelocity = 50 # in cm/s, 300 is the constant speed in step/s
-rover_radius = 16 # in cm
+rover_radius = 16.0 # in cm
+wheel_radius = 5.0 # in cm
+constant_linearVelocity = 400*pi/(20*resolution) # in cm/s, 400 is the constant speed in step/s
+constant_angularVelocity = pi/2.0*wheel_radius/rover_radius # in rad/s
 time_frame = 1.0
 
 class Rover:
@@ -30,17 +32,25 @@ class Rover:
 		self.y = 0
 		self. phi = 0
 
-def calculate_time_limit(rover, x, y):
+def calculate_time_limit(rover, x, y, phi):
 	global constant_linearVelocity
+	global constant_angularVelocity
+
 	dx = x - rover.x
 	dy = y - rover.y
-	time_limit = float(sqrt(dx*dx + dy*dy)/constant_linearVelocity)
+	dphi = phi - rover.phi
+	if (dx != 0 or dy != 0):
+		time_limit = float(sqrt(dx*dx + dy*dy)/constant_linearVelocity)
+	elif (dphi != 0):
+		time_limit = abs(dphi/constant_angularVelocity)
 
 	return time_limit
 
 def calculate_angularVelocity(rover, trg_phi, time_limit):
+	d_phi = trg_phi - rover.phi
+
 	if time_limit != 0:
-		omega = float((trg_phi - rover.phi)/time_limit)
+		omega = float(d_phi/time_limit)
 	else:
 		omega = 0
 
@@ -51,12 +61,18 @@ def calculate_linearVelocity1(rover, x, y):
 
 	d_x = x - rover.x
 	d_y = y - rover.y
+
 	if (d_x != 0 or d_y != 0):
 		angle = float(acos(d_x/sqrt(d_x*d_x + d_y*d_y)))
 
-		v_x = float(constant_linearVelocity*cos(angle))
-
-		v_y = float(constant_linearVelocity*sin(angle))
+		if (d_x != 0):
+			v_x = float(constant_linearVelocity*cos(angle))*(d_x/abs(d_x))
+		else:
+			v_x = 0
+		if (d_y != 0):
+			v_y = float(constant_linearVelocity*sin(angle))*(d_y/abs(d_y))
+		else:
+			v_y = 0
 	else:
 		v_x = 0
 		v_y = 0
@@ -84,6 +100,7 @@ def main():
 	rover = Rover()
 
 	while True:
+		# getting input
 		cont = int(input("Insert 1 token to continue: "))
 		if (cont != 1):
 			break
@@ -91,7 +108,8 @@ def main():
 		global constant_linearVelocity
 		global time_frame
 
-		constant_linearVelocity = float(input("constant_linearVelocity: "))
+		constant_linearVelocity = float(input("constant_linearVelocity (in step/s): "))
+		constant_linearVelocity = constant_linearVelocity*pi/(20*resolution)
 		time_frame = float(input("time_frame: "))
 		trg_x = float(input("X (in cm): "))
 		trg_y = float(input("Y (in cm): "))
@@ -99,7 +117,8 @@ def main():
 		trg_phi = (trg_phi/180)*pi # convert back to radius
 		print()
 
-		time_limit = calculate_time_limit(rover, trg_x, trg_y)
+		# calculate required variable
+		time_limit = calculate_time_limit(rover, trg_x, trg_y, trg_phi)
 		print("Time limit is: ", time_limit, sep = " ")
 
 		v_x, v_y = calculate_linearVelocity1(rover, trg_x, trg_y)
@@ -130,7 +149,7 @@ def main():
 				v_0 = v_0*(20*resolution/pi)
 				v_1 = v_1*(20*resolution/pi)
 				v_2 = v_2*(20*resolution/pi)
-				rapi0.send_spd(ser, v_0, v_1, v_2, 0)
+				rapi.send_spd(ser, v_0, v_1, v_2, 0)
 
 				print("Going straight: v_0: ", v_0, ", v_1: ", v_1, ", v_2: ", v_2)
 
@@ -148,7 +167,7 @@ def main():
 				v_1 = v_1*(20*resolution/pi)
 				v_2 = v_2*(20*resolution/pi)
 
-				rapi0.send_spd(ser, v_0, v_1, v_2, 0)
+				rapi.send_spd(ser, v_0, v_1, v_2, 0)
 
 				print("Turning: v_0: ", v_0, ", v_1: ", v_1, ", v_2: ", v_2)
 
@@ -160,48 +179,47 @@ def main():
 
 		# left over distance 
 
-		if (last_iter_duration != 0):
-			# going straight
-			print()
-			print("Left over distance:")
-			v, v_n = calculate_linearVelocity2(v_x, v_y, rover.phi)
-			v_0, v_1, v_2 = calculate_wheelVelocity(v, v_n, omega)
+		# going straight
+		print()
+		print("Left over distance:")
+		v, v_n = calculate_linearVelocity2(v_x, v_y, rover.phi)
+		v_0, v_1, v_2 = calculate_wheelVelocity(v, v_n, omega)
+
+		v_0 = v_0*(20*resolution/pi)
+		v_1 = v_1*(20*resolution/pi)
+		v_2 = v_2*(20*resolution/pi)
+
+		rapi.send_spd(ser, v_0, v_1, v_2, 0)
+
+		# delay for last_iter_duration
+		sleep(last_iter_duration)
+
+		print("Going straight: v_0: ", v_0, ", v_1: ", v_1, ", v_2: ", v_2)
+
+		if (omega != 0 ):
+			# turning
+
+			rover.update_coor(v_x*last_iter_duration, v_y*last_iter_duration, 0)	
+			rover.print_coor()
+
+			v_0, v_1, v_2 = calculate_wheelVelocity(0, 0, omega)
 
 			v_0 = v_0*(20*resolution/pi)
 			v_1 = v_1*(20*resolution/pi)
 			v_2 = v_2*(20*resolution/pi)
 
-			rapi0.send_spd(ser, v_0, v_1, v_2, 0)
+			rapi.send_spd(ser, v_0, v_1, v_2, 0)
+
+			rover.update_coor(0, 0, omega*last_iter_duration)
+			rover.print_coor()
 
 			# delay for last_iter_duration
 			sleep(last_iter_duration)
 
-			print("Going straight: v_0: ", v_0, ", v_1: ", v_1, ", v_2: ", v_2)
-
-			if (omega != 0 ):
-				# turning
-
-				rover.update_coor(v_x*last_iter_duration, v_y*last_iter_duration, 0)	
-				rover.print_coor()
-
-				v_0, v_1, v_2 = calculate_wheelVelocity(0, 0, omega)
-
-				v_0 = v_0*(20*resolution/pi)
-				v_1 = v_1*(20*resolution/pi)
-				v_2 = v_2*(20*resolution/pi)
-
-				rapi0.send_spd(ser, v_0, v_1, v_2, 0)
-
-				rover.update_coor(0, 0, omega*last_iter_duration)
-				rover.print_coor()
-
-				# delay for last_iter_duration
-				sleep(last_iter_duration)
-
 
 
 		# reset the state of the rover back to (0, 0, 0) for easy debugging.
-		rapi0.send_spd(ser, 0, 0, 0, 1)
+		rapi.send_spd(ser, 0, 0, 0, 1)
 		rover.reset_coor()
 
 if __name__ == '__main__':
