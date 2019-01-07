@@ -49,22 +49,27 @@ def calculate_time_limit(rover, x, y, phi):
 	return time_limit
 
 def calculate_angularVelocity(rover, trg_phi, time_limit):
-	global constant_angularVelocity
+    global constant_angularVelocity
 
-	d_phi = trg_phi - rover.phi
+    d_phi = trg_phi - rover.phi
 
-	if time_limit != 0:
-		omega = float(d_phi/time_limit)
-		if (abs(omega) > constant_angularVelocity):
-			omega = constant_angularVelocity*(omega/abs(omega))
-			time_to_rotate = float(d_phi/omega)
-		else:
-			time_to_rotate = -1.0
-	else:
-		omega = 0
-		time_to_rotate = -1.0
+    if time_limit != 0:
+        if (abs(d_phi) <= (2.0/180.0)*pi):
+            omega = 0
+            time_to_rotate = -1
+        else:
+            omega = float(d_phi/time_limit)
 
-	return omega, time_to_rotate
+            if (abs(omega) > constant_angularVelocity):
+                omega = constant_angularVelocity*(omega/abs(omega))
+                time_to_rotate = float(d_phi/omega)
+            else:
+                time_to_rotate = -1.0
+    else:
+        omega = 0
+        time_to_rotate = -1.0
+
+    return omega, time_to_rotate
 
 def calculate_linearVelocity1(rover, x, y):
 	global constant_linearVelocity
@@ -72,11 +77,14 @@ def calculate_linearVelocity1(rover, x, y):
 	d_x = x - rover.x
 	d_y = y - rover.y
 
-	if (d_x != 0 or d_y != 0):
+	print("d_x: " + str(d_x) + ", d_y: " + str(d_y))
+
+	if (d_x >= 0.5 or d_y >= 0.5):
 		angle = float(acos(d_x/sqrt(d_x*d_x + d_y*d_y)))
+		print("angle: ", angle)
 
 		if (d_x != 0):
-			v_x = float(constant_linearVelocity*cos(angle))*(d_x/abs(d_x))
+			v_x = float(constant_linearVelocity*cos(angle))
 		else:
 			v_x = 0
 		if (d_y != 0):
