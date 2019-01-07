@@ -79,7 +79,7 @@ def calculate_linearVelocity1(rover, x, y):
 
 	print("d_x: " + str(d_x) + ", d_y: " + str(d_y))
 
-	if (d_x >= 0.5 or d_y >= 0.5):
+	if (abs(d_x) >= 0.5 or abs(d_y) >= 0.5):
 		angle = float(acos(d_x/sqrt(d_x*d_x + d_y*d_y)))
 		print("angle: ", angle)
 
@@ -244,9 +244,7 @@ def main():
 			# delay for last_iteration_duration1
 			sleep(last_iteration_duration2)
 
-		# reset the state of the rover back to (0, 0, 0) for easy debugging.
 		rapi.send_spd(ser, 0, 0, 0, 1)
-		rover.reset_coor()
 
 if __name__ == '__main__':
 	main()
