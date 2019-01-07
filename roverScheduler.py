@@ -43,6 +43,8 @@ def calculate_time_limit(rover, x, y, phi):
 		time_limit = float(sqrt(dx*dx + dy*dy)/constant_linearVelocity)
 	elif (dphi != 0):
 		time_limit = abs(dphi/constant_angularVelocity)
+	elif (dx == 0 and dy == 0):
+		time_limit = 1
 
 	return time_limit
 
@@ -70,14 +72,11 @@ def calculate_linearVelocity1(rover, x, y):
 	d_x = x - rover.x
 	d_y = y - rover.y
 
-	print("d_x: " + str(d_x) + ", d_y: " + str(d_y))
-
 	if (d_x != 0 or d_y != 0):
 		angle = float(acos(d_x/sqrt(d_x*d_x + d_y*d_y)))
-		print("angle: ", angle)
 
 		if (d_x != 0):
-			v_x = float(constant_linearVelocity*cos(angle))
+			v_x = float(constant_linearVelocity*cos(angle))*(d_x/abs(d_x))
 		else:
 			v_x = 0
 		if (d_y != 0):
