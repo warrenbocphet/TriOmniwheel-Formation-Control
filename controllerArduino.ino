@@ -20,9 +20,9 @@ byte targetPhi_H;
 byte targetPhi_L;
 byte targetPhi_dir;
 
-float targetX = 50;
-float targetY = 50;
-float targetPhi = PI;
+float targetX = 0;
+float targetY = 0;
+float targetPhi = 0;
 
 // For calculating state of rover
 float v0 = 0; // in cm/s
@@ -126,7 +126,6 @@ void loop()
   	if (Serial.read() == 255)
     {
       Serial.readBytes(buf, 9);
-    }
       targetX_H = buf[0];
       targetX_L = buf[1];
       targetX_dir = buf[2];
@@ -143,12 +142,25 @@ void loop()
       targetY = twobytes1int(targetY_H, targetY_L);
       targetPhi= twobytes1int(targetPhi_H, targetPhi_L);
 
-      targetX = targetX * targetX_dir - 2;
-      targetY = targetY * targetY_dir - 2;
-      targetPhi = targetPhi * targetPhi_dir - 2;
+      targetX = targetX * (targetX_dir - 2);
+      targetY = targetY * (targetY_dir - 2);
+      targetPhi = targetPhi * (targetPhi_dir - 2);
       targetPhi = targetPhi/180.0*PI;
 
       stop_flag = 0;
+    }
+
+    if (Serial.read() == 254)
+    {
+      stop_flag = 1;
+      stepper0.stop();
+      stepper1.stop();
+      stepper2.stop();
+
+      x = 0;
+      y = 0;
+      phi = 0;
+    }
   }
 
  if (((millis() - start1) > (time_frame1*1000)) && (stop_flag == 0) && (start_flag == 1)) // Update new speed after every time_frame1
@@ -157,6 +169,11 @@ void loop()
 
   // find linear and angular velocity v_x, v_y and w
   time_limit = sqrt(dx*dx + dy*dy)/constant_linearVelocity;
+
+  if (time_limit == 0)
+  {
+    time_limit = 1;
+  }
 
   v_x = dx/time_limit;
   v_y = dy/time_limit;
@@ -224,7 +241,7 @@ void loop()
   dphi = targetPhi - phi;
 
   // stopping condition
-  if (abs(dx) < 5 && abs(dy) < 5 && abs(dphi) < 0.087)
+  if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.0175)
   {
     stop_flag = 1;
     stepper0.stop();
