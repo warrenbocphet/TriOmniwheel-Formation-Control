@@ -7,6 +7,7 @@ AccelStepper stepper1(AccelStepper::DRIVER, 3, 6);
 AccelStepper stepper2(AccelStepper::DRIVER, 4, 7);
 
 // For serial communication
+byte a;
 byte buf[9];
 byte targetX_H;
 byte targetX_L;
@@ -23,6 +24,31 @@ byte targetPhi_dir;
 float targetX = 0;
 float targetY = 0;
 float targetPhi = 0;
+
+byte x_send_h;
+byte x_send_l;
+byte y_send_h;
+byte y_send_l;
+byte phi_send_h;
+byte phi_send_l;
+
+int x_send;
+int y_send;
+int phi_send;
+
+int v0_send;
+int v1_send;
+int v2_send;
+
+byte v0_send_h;
+byte v0_send_l;
+byte v1_send_h;
+byte v1_send_l;
+byte v2_send_h;
+byte v2_send_l;
+
+byte timer_send_h;
+byte timer_send_l;
 
 // For calculating state of rover
 float v0 = 0; // in cm/s
@@ -51,6 +77,8 @@ float dphi = 0;
 
 unsigned long start1 = 0;
 unsigned long start2 = 0;
+unsigned long start3 = 0;
+unsigned long timer = 0;
 
 int stop_flag = 0;
 int start_flag = 0;
@@ -112,17 +140,20 @@ void setup()
   stepper0.setSpeed(0);
   stepper1.setSpeed(0);
   stepper2.setSpeed(0);
-
   
   start2 = millis();
+  start3 = millis();
+  timer = (millis() - start3)/1000;
 }
 
 
 void loop()
 {
+  timer = (millis() - start3)/1000;
   if (Serial.available())
   {
-  	if (Serial.read() == 255)
+    a = Serial.read();
+  	if (a == 255) // get coordinate
     {
       Serial.readBytes(buf, 9);
       targetX_H = buf[0];
@@ -149,7 +180,7 @@ void loop()
       stop_flag = 0;
     }
 
-    if (Serial.read() == 254)
+    if (a == 254) // reset
     {
       stop_flag = 1;
       stepper0.stop();
@@ -159,6 +190,139 @@ void loop()
       x = 0;
       y = 0;
       phi = 0;
+      start3 = millis();
+      timer = 0;
+
+      v0 = 0;
+      v1 = 0;
+      v2 = 0;
+      v0s = 0;
+      v1s = 0;
+      v2s = 0;
+    }
+
+    if (a == 253) // send state to RPI
+    {
+      Serial.write(255);
+      if (x < 0) 
+      {
+        x_send = (int) x*(-1);
+        x_send_h = ((x_send >> 8) & 0xFF);
+        x_send_l = (x_send & 0xFF);  
+        Serial.write(x_send_h);
+        Serial.write(x_send_l);
+        Serial.write(1);
+      }
+      else
+      {
+       x_send = (int) x;
+       x_send_h = ((x_send >> 8) & 0xFF);
+       x_send_l = (x_send & 0xFF); 
+       Serial.write(x_send_h);
+       Serial.write(x_send_l);
+       Serial.write(3);
+     }
+    
+     if (y < 0) 
+     {
+       y_send = (int) y*(-1);
+       y_send_h = ((y_send >> 8) & 0xFF);
+       y_send_l = (y_send & 0xFF);
+       Serial.write(y_send_h);
+       Serial.write(y_send_l);  
+       Serial.write(1);    
+     }
+     else
+     {
+       y_send = (int) y;
+       y_send_h = ((y_send >> 8) & 0xFF);
+       y_send_l = (y_send & 0xFF); 
+       Serial.write(y_send_h);
+       Serial.write(y_send_l);
+       Serial.write(3);
+     }
+    
+     if (phi < 0) 
+     {
+       phi_send = (int) (phi*(180/3.14)*(-1));
+       phi_send_h = ((phi_send >> 8) & 0xFF);
+       phi_send_l = (phi_send & 0xFF);  
+       Serial.write(phi_send_h);
+       Serial.write(phi_send_l);
+       Serial.write(1);
+     }
+     else
+     {
+       phi_send = (int) (phi*(180/3.14));
+       phi_send_h = ((phi_send >> 8) & 0xFF);
+       phi_send_l = (phi_send & 0xFF); 
+       Serial.write(phi_send_h);
+       Serial.write(phi_send_l);
+       Serial.write(3);
+     }
+
+     if (v0 < 0) 
+      {
+        v0_send = (int) 100*v0*(-1);
+        v0_send_h = ((v0_send >> 8) & 0xFF);
+        v0_send_l = (v0_send & 0xFF);  
+        Serial.write(v0_send_h);
+        Serial.write(v0_send_l);
+        Serial.write(1);
+      }
+      else
+      {
+       v0_send = (int) 100*v0;
+       v0_send_h = ((v0_send >> 8) & 0xFF);
+       v0_send_l = (v0_send & 0xFF); 
+       Serial.write(v0_send_h);
+       Serial.write(v0_send_l);
+       Serial.write(3);
+     }
+
+     if (v1 < 0) 
+      {
+        v1_send = (int) 100*v1*(-1);
+        v1_send_h = ((v1_send >> 8) & 0xFF);
+        v1_send_l = (v1_send & 0xFF);  
+        Serial.write(v1_send_h);
+        Serial.write(v1_send_l);
+        Serial.write(1);
+      }
+      else
+      {
+       v1_send = (int) 100*v1;
+       v1_send_h = ((v1_send >> 8) & 0xFF);
+       v1_send_l = (v1_send & 0xFF); 
+       Serial.write(v1_send_h);
+       Serial.write(v1_send_l);
+       Serial.write(3);
+     }
+
+     if (v2 < 0) 
+      {
+        v2_send = (int) 100*v2*(-1);
+        v2_send_h = ((v2_send >> 8) & 0xFF);
+        v2_send_l = (v2_send & 0xFF);  
+        Serial.write(v2_send_h);
+        Serial.write(v2_send_l);
+        Serial.write(1);
+      }
+      else
+      {
+       v2_send = (int) 100*v2;
+       v2_send_h = ((v2_send >> 8) & 0xFF);
+       v2_send_l = (v2_send & 0xFF); 
+       Serial.write(v2_send_h);
+       Serial.write(v2_send_l);
+       Serial.write(3);
+
+      }
+
+      timer_send_h = (timer >> 8) & 0xFF;
+      timer_send_l = (timer & 0xFF);
+      Serial.write(timer_send_h);
+      Serial.write(timer_send_l);
     }
   }
 
