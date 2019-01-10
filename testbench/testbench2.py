@@ -20,35 +20,35 @@ while 1:
             a = int(input("Wrong mode. Enter the mode you want to do: "))
     
     if (a == 1):
-        destination.append([0, 0, 0])
-        destination.append([-50, 50, 0])
-        destination.append([-50, 50, 45])
-        destination.append([-50, 50, 0])
-        destination.append([50, 50, 0])
-        destination.append([50, 50, -90])
-        destination.append([50, 50, 0])
-        destination.append([50, -50, 0])
-        destination.append([50, -50, 135])
-        destination.append([50, -50, 0])
-        destination.append([-50, -50, 0])
-        destination.append([-50, -50, -180])
-        destination.append([-50, -50, 0])
-        destination.append([0, 0, 0])
+        destination.append([0, 0, 0, 0])
+        destination.append([-50, 50, 0, 0])
+        destination.append([-50, 50, 45, 0])
+        destination.append([-50, 50, 0, 0])
+        destination.append([50, 50, 0, 0])
+        destination.append([50, 50, -90, 0])
+        destination.append([50, 50, 0, 0])
+        destination.append([50, -50, 0, 0])
+        destination.append([50, -50, 135, 0])
+        destination.append([50, -50, 0, 0])
+        destination.append([-50, -50, 0, 0])
+        destination.append([-50, -50, -180, 0])
+        destination.append([-50, -50, 0, 0])
+        destination.append([0, 0, 0, 0])
         
     if (a == 2):
-        destination.append([0, 0, 0])
-        destination.append([-50, 50, 45])
-        destination.append([50, 50, -90])
-        destination.append([50, -50, 135])
-        destination.append([-50, -50, -180])
-        destination.append([0, 0, 0])
+        destination.append([0, 0, 0, 0])
+        destination.append([-50, 50, 45, 0])
+        destination.append([50, 50, -90, 0])
+        destination.append([50, -50, 135, 0])
+        destination.append([-50, -50, -180, 0])
+        destination.append([0, 0, 0, 0])
     
     if (a == 3):
         break
     
     for i in range(len(destination)):
         try:
-            rapi.send_coor(ser, destination[i][0], destination[i][1], destination[i][2])
+            rapi.send_coor(ser, destination[i][0], destination[i][1], destination[i][2], destination[i][3])
             print("Sent coordinate: " + str(destination[i]))
             print("Rover is running, waiting for rover to reach destination.")
             signal = ser.read()
