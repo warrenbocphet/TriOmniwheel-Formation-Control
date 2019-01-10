@@ -56,13 +56,12 @@ int stop_flag = 0;
 int start_flag = 0;
 int elapsedTime = 0;
 float time_frame1 = 1;
-float time_frame2 = 0.1;
+float time_frame2 = 0.01;
 
 int resolution = 8;
 float rover_radius = 13.75; // in cm
 float wheel_radius = 2.55; // in cm
-float constant_linearVelocity = 300*((wheel_radius*PI)/(resolution*100)); // in cm/s
-float constant_angularVelocity = PI/4.0*wheel_radius/rover_radius; // in rad/s
+float constant_linearVelocity = 400*((wheel_radius*PI)/(resolution*100)); // in cm/s
 int threshold_velocity = 400;
 
 float time_limit = 0.0;
@@ -78,17 +77,17 @@ int twobytes1int(byte high, byte low)
 float largest_of_three(float first, float second, float third)
 {
   float largest = first;
-  if (second > largest)
+  if (abs(second) > abs(largest))
   {
     largest = second;
   }
 
-  if (third > largest)
+  if (abs(third) > abs(largest))
   {
     largest = third;
   }
 
-  return largest;
+  return abs(largest);
 }
 
 void setup()
@@ -194,7 +193,7 @@ void loop()
   v2s = v2 * ((resolution*100)/(wheel_radius*PI));
 
   // scale down v0, v1, v2 if necessary
-  if (v0s > threshold_velocity || v1s > threshold_velocity || v2s > threshold_velocity)
+  if (abs(v0s) > threshold_velocity || abs(v1s) > threshold_velocity || abs(v2s) > threshold_velocity)
   {
     // find the largest velocity
     largest_vel = largest_of_three(v0s, v1s, v2s);
@@ -211,6 +210,10 @@ void loop()
   stepper2.setSpeed(v2s);
 
   // recalculate v_x, v_y, w
+  v0 = v0s/((resolution*100)/(wheel_radius*PI));
+  v1 = v1s/((resolution*100)/(wheel_radius*PI));
+  v2 = v2s/((resolution*100)/(wheel_radius*PI));
+  
   w = 1/(3*rover_radius)*(v0 + v1 + v2);
 
   v = (sqrt(3)/3)*(v2-v0);
@@ -241,7 +244,7 @@ void loop()
   dphi = targetPhi - phi;
 
   // stopping condition
-  if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.0175)
+  if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.015)
   {
     stop_flag = 1;
     stepper0.stop();
