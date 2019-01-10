@@ -250,6 +250,8 @@ void loop()
     stepper0.stop();
     stepper1.stop();
     stepper2.stop();
+
+    Serial.write(1);
   }
  }
 
