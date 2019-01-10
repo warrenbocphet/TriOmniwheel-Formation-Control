@@ -21,9 +21,13 @@ byte targetPhi_H;
 byte targetPhi_L;
 byte targetPhi_dir;
 
+byte targetTime_H;
+byte targetTime_L;
+
 float targetX = 0;
 float targetY = 0;
 float targetPhi = 0;
+int targetTime = 0;
 
 byte x_send_h;
 byte x_send_l;
@@ -155,7 +159,7 @@ void loop()
     a = Serial.read();
   	if (a == 255) // get coordinate
     {
-      Serial.readBytes(buf, 9);
+      Serial.readBytes(buf, 12);
       targetX_H = buf[0];
       targetX_L = buf[1];
       targetX_dir = buf[2];
@@ -168,9 +172,13 @@ void loop()
       targetPhi_L = buf[7];
       targetPhi_dir = buf[8];
 
+      targetTime_H = buf[9];
+      targetTime_L = buf[10];
+
       targetX = twobytes1int(targetX_H, targetX_L);
       targetY = twobytes1int(targetY_H, targetY_L);
       targetPhi= twobytes1int(targetPhi_H, targetPhi_L);
+      targetTime = twobytes1int(targetTime_H, targetTime_L);
 
       targetX = targetX * (targetX_dir - 2);
       targetY = targetY * (targetY_dir - 2);
@@ -325,99 +333,101 @@ void loop()
       Serial.write(timer_send_l);
     }
   }
-
- if (((millis() - start1) > (time_frame1*1000)) && (stop_flag == 0) && (start_flag == 1)) // Update new speed after every time_frame1
+ if (timer > targetTime)
  {
-  start1 = millis(); // reset the timer
-
-  // find linear and angular velocity v_x, v_y and w
-  time_limit = sqrt(dx*dx + dy*dy)/constant_linearVelocity;
-
-  if (time_limit == 0)
-  {
-    time_limit = 1;
+   if (((millis() - start1) > (time_frame1*1000)) && (stop_flag == 0) && (start_flag == 1)) // Update new speed after every time_frame1
+    {
+     start1 = millis(); // reset the timer
+   
+     // find linear and angular velocity v_x, v_y and w
+     time_limit = sqrt(dx*dx + dy*dy)/constant_linearVelocity;
+   
+     if (time_limit == 0)
+     {
+       time_limit = 1;
+     }
+   
+     v_x = dx/time_limit;
+     v_y = dy/time_limit;
+     w = dphi/time_limit;
+   
+     // find v, v_n
+     v = v_x*cos(phi) + v_y*sin(phi);
+     v_n = -v_x*sin(phi) + v_y*cos(phi);
+   
+     // find v0, v1, v2 (in cm/s)
+     v0 = -v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
+     v1 =              - v_n           + w*rover_radius;
+     v2 = v*sin(PI/3)  + v_n*cos(PI/3) + w*rover_radius;
+   
+     // convert it back to step/s
+     v0s = v0 * ((resolution*100)/(wheel_radius*PI));
+     v1s = v1 * ((resolution*100)/(wheel_radius*PI));
+     v2s = v2 * ((resolution*100)/(wheel_radius*PI));
+   
+     // scale down v0, v1, v2 if necessary
+     if (abs(v0s) > threshold_velocity || abs(v1s) > threshold_velocity || abs(v2s) > threshold_velocity)
+     {
+       // find the largest velocity
+       largest_vel = largest_of_three(v0s, v1s, v2s);
+   
+       // scale down
+       v0s = v0s/largest_vel*threshold_velocity;
+       v1s = v1s/largest_vel*threshold_velocity;
+       v2s = v2s/largest_vel*threshold_velocity;
+     }
+     
+     // set speed for each motor
+     stepper0.setSpeed(v0s);
+     stepper1.setSpeed(v1s);
+     stepper2.setSpeed(v2s);
+   
+     // recalculate v_x, v_y, w
+     v0 = v0s/((resolution*100)/(wheel_radius*PI));
+     v1 = v1s/((resolution*100)/(wheel_radius*PI));
+     v2 = v2s/((resolution*100)/(wheel_radius*PI));
+     
+     w = 1/(3*rover_radius)*(v0 + v1 + v2);
+   
+     v = (sqrt(3)/3)*(v2-v0);
+     v_n = 1/3.0*(v2+v0) - 2/3.0*v1;
+   
+     v_x = v*cos(phi) - v_n*sin(phi);
+     v_y = v*sin(phi) + v_n*cos(phi);
+     
+    }
+   
+    if ((millis() - start2 > time_frame2*1000) && (stop_flag == 0)) // update coordinate every time_frame2
+    {
+     if (start_flag == 0)
+     {
+       start1 = millis();
+     }
+     start2 = millis(); // reset the timer
+     start_flag = 1;
+     
+     // calculate x, y, phi
+     x = x + v_x*time_frame2;
+     y = y + v_y*time_frame2;
+     phi = phi + w*time_frame2;
+   
+     // Calculate required displacement
+     dx = targetX - x;
+     dy = targetY - y;
+     dphi = targetPhi - phi;
+   
+     // stopping condition
+     if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.015)
+     {
+       stop_flag = 1;
+       stepper0.stop();
+       stepper1.stop();
+       stepper2.stop();
+   
+       Serial.write(1);
+     }
+    }
   }
-
-  v_x = dx/time_limit;
-  v_y = dy/time_limit;
-  w = dphi/time_limit;
-
-  // find v, v_n
-  v = v_x*cos(phi) + v_y*sin(phi);
-  v_n = -v_x*sin(phi) + v_y*cos(phi);
-
-  // find v0, v1, v2 (in cm/s)
-  v0 = -v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
-  v1 =              - v_n           + w*rover_radius;
-  v2 = v*sin(PI/3)  + v_n*cos(PI/3) + w*rover_radius;
-
-  // convert it back to step/s
-  v0s = v0 * ((resolution*100)/(wheel_radius*PI));
-  v1s = v1 * ((resolution*100)/(wheel_radius*PI));
-  v2s = v2 * ((resolution*100)/(wheel_radius*PI));
-
-  // scale down v0, v1, v2 if necessary
-  if (abs(v0s) > threshold_velocity || abs(v1s) > threshold_velocity || abs(v2s) > threshold_velocity)
-  {
-    // find the largest velocity
-    largest_vel = largest_of_three(v0s, v1s, v2s);
-
-    // scale down
-    v0s = v0s/largest_vel*threshold_velocity;
-    v1s = v1s/largest_vel*threshold_velocity;
-    v2s = v2s/largest_vel*threshold_velocity;
-  }
-  
-  // set speed for each motor
-  stepper0.setSpeed(v0s);
-  stepper1.setSpeed(v1s);
-  stepper2.setSpeed(v2s);
-
-  // recalculate v_x, v_y, w
-  v0 = v0s/((resolution*100)/(wheel_radius*PI));
-  v1 = v1s/((resolution*100)/(wheel_radius*PI));
-  v2 = v2s/((resolution*100)/(wheel_radius*PI));
-  
-  w = 1/(3*rover_radius)*(v0 + v1 + v2);
-
-  v = (sqrt(3)/3)*(v2-v0);
-  v_n = 1/3.0*(v2+v0) - 2/3.0*v1;
-
-  v_x = v*cos(phi) - v_n*sin(phi);
-  v_y = v*sin(phi) + v_n*cos(phi);
-  
- }
-
- if ((millis() - start2 > time_frame2*1000) && (stop_flag == 0)) // update coordinate every time_frame2
- {
-  if (start_flag == 0)
-  {
-    start1 = millis();
-  }
-  start2 = millis(); // reset the timer
-  start_flag = 1;
-  
-  // calculate x, y, phi
-  x = x + v_x*time_frame2;
-  y = y + v_y*time_frame2;
-  phi = phi + w*time_frame2;
-
-  // Calculate required displacement
-  dx = targetX - x;
-  dy = targetY - y;
-  dphi = targetPhi - phi;
-
-  // stopping condition
-  if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.015)
-  {
-    stop_flag = 1;
-    stepper0.stop();
-    stepper1.stop();
-    stepper2.stop();
-
-    Serial.write(1);
-  }
- }
 
  if (stop_flag == 0)
  {
