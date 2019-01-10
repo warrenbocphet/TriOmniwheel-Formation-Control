@@ -16,12 +16,13 @@ def write_coor(ser_fnc, data):
         ser_fnc.write([dataLow])
         ser_fnc.write([3])
 
-def send_coor(ser, x, y, phi):
+def send_coor(ser, x, y, phi, time):
     ser.write([255])
 
     write_coor(ser, int(x))
     write_coor(ser, int(y))
     write_coor(ser, int(phi))
+    write_coor(ser, int(time))
 
 def getState(ser):
     
