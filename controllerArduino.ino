@@ -1,5 +1,12 @@
+// AccelStepper to control stepper motors
 #include <AccelStepper.h>
 #include <math.h>
+// The SFE_LSM9DS1 library requires both Wire and SPI be
+// included BEFORE including the 9DS1 library.
+#include <Wire.h>
+#include <SPI.h>
+#include <SparkFunLSM9DS1.h>
+#include <SimpleKalmanFilter.h>
 
 //Stepper X, Y, Z are the same as the X, Y, Z on Protoneer shield
 AccelStepper stepper0(AccelStepper::DRIVER, 2, 5); // pin 2 for step, pin 5 for direction
@@ -79,25 +86,99 @@ float dx = 0;
 float dy = 0;
 float dphi = 0;
 
-unsigned long start1 = 0;
-unsigned long start2 = 0;
-unsigned long start3 = 0;
+unsigned long start1 = 0; // when to run
+unsigned long timeNow = 0;
+unsigned long timePrevious = 0;
+float elapsedTime = 0;
+int timeFlag = 0;
 unsigned long timer = 0;
-
-int stop_flag = 0;
-int start_flag = 0;
-int elapsedTime = 0;
-float time_frame1 = 1;
-float time_frame2 = 0.01;
+int go_flag = 0;
 
 int resolution = 8;
-float rover_radius = 13.75; // in cm
-float wheel_radius = 2.55; // in cm
+float rover_radius = 15.6; // in cm
+float wheel_radius = 5.22; // in cm
 float constant_linearVelocity = 400*((wheel_radius*PI)/(resolution*100)); // in cm/s
 int threshold_velocity = 400;
 
 float time_limit = 0.0;
 
+// For IMU sensor
+// objects of classes
+LSM9DS1 imu_X;
+LSM9DS1 imu_Y;
+LSM9DS1 imu_Z;
+SimpleKalmanFilter KF_X(1, 1, 1);
+SimpleKalmanFilter KF_Y(1, 1, 1);
+SimpleKalmanFilter KF_Z(1, 1, 1);
+
+#define LSM9DS1_AG  0x6B // accelerometer and gyrometer
+#define LSM9DS1_M  0x1E // magnetometer
+#define TCAADDR 0x70 // multiplexer i2c
+
+float offset_wheel_X, offset_wheel_Y, offset_wheel_Z;
+float threshold_X, threshold_Y, threshold_Z;
+
+float gyroX, gyroY, gyroZ;
+float linear_X, linear_Y, linear_Z;
+float fusion_X, fusion_Y, fusion_Z;
+float filter_X, filter_Y, filter_Z;
+float filter_X_previous, filter_Y_previous, filter_Z_previous;
+float filter_X_now, filter_Y_now, filter_Z_now;
+float filter_X_avr, filter_Y_avr, filter_Z_avr;
+int filter_flag = 0;
+
+float DegreesToRadians(float degrees)
+{
+    return degrees*M_PI/180;
+}
+
+// change channel in multiplexer 0 to 7
+void tcaselect(uint8_t i) {
+  if (i > 7) return;
+ 
+  Wire.beginTransmission(TCAADDR);
+  Wire.write(1 << i);
+  Wire.endTransmission();  
+}
+
+// find average value of 100 reading samples
+float calibrateGyro(LSM9DS1 imu)
+{
+  float value = 0;
+  float limit = 100;
+
+  // find mean value 
+  for(int i = 0; i < limit; i++)
+  {
+    imu.readGyro();
+    value += imu.gz;
+  }
+
+  return value/limit;
+  
+}
+
+// find variance of 100 reading samples
+float thresholdGyro(LSM9DS1 imu, float mean)
+{
+  float tempValue;
+  float threshold = 0;
+  float limit = 100;
+  
+  // find threshold value
+  for(int i = 0; i < limit; i++)
+  {
+    imu.readGyro();
+    tempValue = imu.gz - mean;
+    if (abs(tempValue) > abs(threshold)){
+      threshold = tempValue;
+    }
+  }
+  return abs(threshold)/2.0;
+}
+
+
+// for serial communication
 int twobytes1int(byte high, byte low)
 {
   int number;
@@ -106,6 +187,7 @@ int twobytes1int(byte high, byte low)
   return number;
 }
 
+// for speed scaling
 float largest_of_three(float first, float second, float third)
 {
   float largest = first;
@@ -124,7 +206,10 @@ float largest_of_three(float first, float second, float third)
 
 void setup()
 {
+  Wire.begin();  
   Serial.begin(9600);
+
+  // for stepper motor control
   pinMode(2, OUTPUT);
   pinMode(5, OUTPUT);
    
@@ -144,16 +229,57 @@ void setup()
   stepper0.setSpeed(0);
   stepper1.setSpeed(0);
   stepper2.setSpeed(0);
+
+  // for IMU sensor
+  imu_X.settings.device.commInterface = IMU_MODE_I2C;
+  imu_X.settings.device.mAddress = LSM9DS1_M;
+  imu_X.settings.device.agAddress = LSM9DS1_AG;
   
-  start2 = millis();
-  start3 = millis();
-  timer = (millis() - start3)/1000;
+  imu_Y.settings.device.commInterface = IMU_MODE_I2C;
+  imu_Y.settings.device.mAddress = LSM9DS1_M;
+  imu_Y.settings.device.agAddress = LSM9DS1_AG;
+  
+  imu_Z.settings.device.commInterface = IMU_MODE_I2C;
+  imu_Z.settings.device.mAddress = LSM9DS1_M;
+  imu_Z.settings.device.agAddress = LSM9DS1_AG;
+
+  /* Initialise the 1st sensor */
+  tcaselect(0);
+  while(!imu_X.begin());  
+  offset_wheel_X = calibrateGyro(imu_X);
+  // threshold_X = thresholdGyro(imu_X, offset_wheel_X);
+  // threshold_X = imu_X.calcGyro(threshold_X);
+  
+  /* Initialise the 2nd sensor */
+  tcaselect(1);
+  while(!imu_Y.begin());
+  offset_wheel_Y = calibrateGyro(imu_Y);
+  // threshold_Y = thresholdGyro(imu_Y, offset_wheel_Y);
+  // threshold_Y = imu_Y.calcGyro(threshold_Y);
+  
+   /* Initialise the 3rd sensor */
+  tcaselect(2);
+  while(!imu_Z.begin());
+  offset_wheel_Z = calibrateGyro(imu_Z);
+  // threshold_Z = thresholdGyro(imu_Z, offset_wheel_Z);
+  // threshold_Z = imu_Z.calcGyro(threshold_Z);
+
+  start1 = millis();
 }
 
 
 void loop()
 {
-  timer = (millis() - start3)/1000;
+  if (timeFlag == 1)
+  {
+    timeNow = millis();
+    elapsedTime = (timeNow - timePrevious)/1000.0;
+  }
+  timePrevious = millis();
+  timeFlag = 1;
+  
+  
+  timer = (millis() - start1)/1000;
   if (Serial.available())
   {
     a = Serial.read();
@@ -185,12 +311,12 @@ void loop()
       targetPhi = targetPhi * (targetPhi_dir - 2);
       targetPhi = targetPhi/180.0*PI;
 
-      stop_flag = 0;
+      go_flag = 1;
+
     }
 
     if (a == 254) // reset
     {
-      stop_flag = 1;
       stepper0.stop();
       stepper1.stop();
       stepper2.stop();
@@ -198,7 +324,7 @@ void loop()
       x = 0;
       y = 0;
       phi = 0;
-      start3 = millis();
+      start1 = millis();
       timer = 0;
 
       v0 = 0;
@@ -269,9 +395,9 @@ void loop()
        Serial.write(3);
      }
 
-     if (v0 < 0) 
+     if (filter_X_avr < 0) 
       {
-        v0_send = (int) 100*v0*(-1);
+        v0_send = (int) 100*filter_X_avr*(-1);
         v0_send_h = ((v0_send >> 8) & 0xFF);
         v0_send_l = (v0_send & 0xFF);  
         Serial.write(v0_send_h);
@@ -280,7 +406,7 @@ void loop()
       }
       else
       {
-       v0_send = (int) 100*v0;
+       v0_send = (int) 100*filter_X_avr;
        v0_send_h = ((v0_send >> 8) & 0xFF);
        v0_send_l = (v0_send & 0xFF); 
        Serial.write(v0_send_h);
@@ -288,9 +414,9 @@ void loop()
        Serial.write(3);
      }
 
-     if (v1 < 0) 
+     if (filter_Y_avr < 0) 
       {
-        v1_send = (int) 100*v1*(-1);
+        v1_send = (int) 100*filter_Y_avr*(-1);
         v1_send_h = ((v1_send >> 8) & 0xFF);
         v1_send_l = (v1_send & 0xFF);  
         Serial.write(v1_send_h);
@@ -299,7 +425,7 @@ void loop()
       }
       else
       {
-       v1_send = (int) 100*v1;
+       v1_send = (int) 100*filter_Y_avr;
        v1_send_h = ((v1_send >> 8) & 0xFF);
        v1_send_l = (v1_send & 0xFF); 
        Serial.write(v1_send_h);
@@ -307,9 +433,9 @@ void loop()
        Serial.write(3);
      }
 
-     if (v2 < 0) 
+     if (filter_Z_avr < 0) 
       {
-        v2_send = (int) 100*v2*(-1);
+        v2_send = (int) 100*filter_Z_avr*(-1);
         v2_send_h = ((v2_send >> 8) & 0xFF);
         v2_send_l = (v2_send & 0xFF);  
         Serial.write(v2_send_h);
@@ -318,7 +444,7 @@ void loop()
       }
       else
       {
-       v2_send = (int) 100*v2;
+       v2_send = (int) 100*filter_Z_avr;
        v2_send_h = ((v2_send >> 8) & 0xFF);
        v2_send_l = (v2_send & 0xFF); 
        Serial.write(v2_send_h);
@@ -333,108 +459,163 @@ void loop()
       Serial.write(timer_send_l);
     }
   }
- if (timer > targetTime)
+ if (timer > targetTime && go_flag == 1)
  {
-   if (((millis() - start1) > (time_frame1*1000)) && (stop_flag == 0) && (start_flag == 1)) // Update new speed after every time_frame1
-    {
-     start1 = millis(); // reset the timer
+  // find dx, dy, dphi
+  dx = targetX - x;
+  dy = targetY - y;
+  dphi = targetPhi - phi;
+  
+  time_limit = sqrt(dx*dx + dy*dy)/constant_linearVelocity;
+
+  if (time_limit == 0)
+  {
+   time_limit = 1;
+  }
+  
+  v_x = dx/time_limit;
+  v_y = dy/time_limit;
+  w = dphi/time_limit;
+
+  // find v, v_n
+  v = v_x*cos(phi) + v_y*sin(phi);
+  v_n = -v_x*sin(phi) + v_y*cos(phi);
+
+  // find v_0, v_1, v_2
+  v0 = -v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
+  v1 =              - v_n           + w*rover_radius;
+  v2 = v*sin(PI/3)  + v_n*cos(PI/3) + w*rover_radius;
+
+  // convert it back to step/s
+   v0s = v0 * ((resolution*100)/(wheel_radius*PI));
+   v1s = v1 * ((resolution*100)/(wheel_radius*PI));
+   v2s = v2 * ((resolution*100)/(wheel_radius*PI));
+
+  // scale down v_0, v_1, v_2 if necessary
+  if (abs(v0s) > threshold_velocity || abs(v1s) > threshold_velocity || abs(v2s) > threshold_velocity)
+  {
+     // find the largest velocity
+     largest_vel = largest_of_three(v0s, v1s, v2s);
    
-     // find linear and angular velocity v_x, v_y and w
-     time_limit = sqrt(dx*dx + dy*dy)/constant_linearVelocity;
-   
-     if (time_limit == 0)
-     {
-       time_limit = 1;
-     }
-   
-     v_x = dx/time_limit;
-     v_y = dy/time_limit;
-     w = dphi/time_limit;
-   
-     // find v, v_n
-     v = v_x*cos(phi) + v_y*sin(phi);
-     v_n = -v_x*sin(phi) + v_y*cos(phi);
-   
-     // find v0, v1, v2 (in cm/s)
-     v0 = -v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
-     v1 =              - v_n           + w*rover_radius;
-     v2 = v*sin(PI/3)  + v_n*cos(PI/3) + w*rover_radius;
-   
-     // convert it back to step/s
-     v0s = v0 * ((resolution*100)/(wheel_radius*PI));
-     v1s = v1 * ((resolution*100)/(wheel_radius*PI));
-     v2s = v2 * ((resolution*100)/(wheel_radius*PI));
-   
-     // scale down v0, v1, v2 if necessary
-     if (abs(v0s) > threshold_velocity || abs(v1s) > threshold_velocity || abs(v2s) > threshold_velocity)
-     {
-       // find the largest velocity
-       largest_vel = largest_of_three(v0s, v1s, v2s);
-   
-       // scale down
-       v0s = v0s/largest_vel*threshold_velocity;
-       v1s = v1s/largest_vel*threshold_velocity;
-       v2s = v2s/largest_vel*threshold_velocity;
-     }
-     
-     // set speed for each motor
-     stepper0.setSpeed(v0s);
-     stepper1.setSpeed(v1s);
-     stepper2.setSpeed(v2s);
-   
-     // recalculate v_x, v_y, w
-     v0 = v0s/((resolution*100)/(wheel_radius*PI));
-     v1 = v1s/((resolution*100)/(wheel_radius*PI));
-     v2 = v2s/((resolution*100)/(wheel_radius*PI));
-     
-     w = 1/(3*rover_radius)*(v0 + v1 + v2);
-   
-     v = (sqrt(3)/3)*(v2-v0);
-     v_n = 1/3.0*(v2+v0) - 2/3.0*v1;
-   
-     v_x = v*cos(phi) - v_n*sin(phi);
-     v_y = v*sin(phi) + v_n*cos(phi);
-     
-    }
-   
-    if ((millis() - start2 > time_frame2*1000) && (stop_flag == 0)) // update coordinate every time_frame2
-    {
-     if (start_flag == 0)
-     {
-       start1 = millis();
-     }
-     start2 = millis(); // reset the timer
-     start_flag = 1;
-     
-     // calculate x, y, phi
-     x = x + v_x*time_frame2;
-     y = y + v_y*time_frame2;
-     phi = phi + w*time_frame2;
-   
-     // Calculate required displacement
-     dx = targetX - x;
-     dy = targetY - y;
-     dphi = targetPhi - phi;
-   
-     // stopping condition
-     if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.015)
-     {
-       stop_flag = 1;
-       stepper0.stop();
-       stepper1.stop();
-       stepper2.stop();
-   
-       Serial.write(1);
-     }
-    }
+     // scale down
+     v0s = v0s/largest_vel*threshold_velocity;
+     v1s = v1s/largest_vel*threshold_velocity;
+     v2s = v2s/largest_vel*threshold_velocity;
   }
 
- if (stop_flag == 0)
+  stepper0.setSpeed(v0s);
+  stepper1.setSpeed(v1s);
+  stepper2.setSpeed(v2s);
+
+  // get IMU reading
+  // wheel X
+    tcaselect(0);
+    imu_X.readGyro();
+    gyroX = imu_X.calcGyro(imu_X.gz - offset_wheel_X);
+    // if (abs(gyroX) < threshold_X)
+    //   gyroX = 0;
+    linear_X = DegreesToRadians(gyroX) * wheel_radius; // deg/s to rad/s
+    fusion_X = linear_X; // will add step count later
+    filter_X = KF_X.updateEstimate(fusion_X);
+    if (filter_flag == 1)
+    {
+      filter_X_now = filter_X;
+      filter_X_avr = (filter_X_now + filter_X_previous)/2.0;
+    } else {
+      filter_X_avr = 0;
+    }
+    filter_X_previous = filter_X;
+
+  // wheel Y
+    tcaselect(1);
+    imu_Y.readGyro();
+    gyroY = imu_Y.calcGyro(imu_Y.gz - offset_wheel_Y);
+    // if (abs(gyroY) < threshold_Y)
+    //   gyroY = 0;
+    linear_Y = DegreesToRadians(gyroY) * wheel_radius;
+    fusion_Y = linear_Y; // will add step count later
+    filter_Y = KF_Y.updateEstimate(fusion_Y);
+    if (filter_flag == 1)
+    {
+      filter_Y_now = filter_Y;
+      filter_Y_avr = (filter_Y_now + filter_Y_previous)/2.0;
+    } else {
+      filter_Y_avr = 0;
+    }
+    filter_Y_previous = filter_Y;
+
+  // wheel Z
+    tcaselect(2);
+    imu_Z.readGyro();
+    gyroZ = imu_Z.calcGyro(imu_Z.gz - offset_wheel_Z);
+    // if (abs(gyroZ) < threshold_Z)
+    //   gyroZ = 0;
+    linear_Z = DegreesToRadians(gyroZ) * wheel_radius;
+    fusion_Z = linear_Z; // will add step count later
+    filter_Z = KF_Z.updateEstimate(fusion_Z);
+    if (filter_flag == 1)
+    {
+      filter_Z_now = filter_Z;
+      filter_Z_avr = (filter_Z_now + filter_Z_previous)/2.0;
+    } else {
+      filter_Z_avr = 0;
+    }
+    filter_Z_previous = filter_Z;
+
+    filter_flag = 1;
+
+  // recalculate v_x, v_y, w
+  w = 1/(3*rover_radius)*(filter_X_avr + filter_Y_avr + filter_Z_avr);
+  v = (sqrt(3)/3)*(filter_Z_avr - filter_X_avr);
+  v_n = 1/3.0*(filter_Z_avr + filter_X_avr) - 2/3.0*filter_Y_avr;
+
+  v_x = v*cos(phi) - v_n*sin(phi);
+  v_y = v*sin(phi) + v_n*cos(phi);
+
+  // calculate x, y phi
+  x = x + v_x*elapsedTime;
+  y = y + v_y*elapsedTime;
+  phi = phi + w*elapsedTime;
+
+  // stopping condition
+  if (abs(dx) < 1 && abs(dy) < 1 && abs(dphi) < 0.018)
+  {
+    // stop
+    stepper0.stop();
+    stepper1.stop();
+    stepper2.stop();
+    v0 = 0;
+    v1 = 0;
+    v2 = 0;
+    v0s = 0;
+    v1s = 0;
+    v2s = 0;
+
+    go_flag = 0;
+  }  
+   
+ } else {
+    stepper0.stop();
+    stepper1.stop();
+    stepper2.stop();
+
+    v0 = 0;
+    v1 = 0;
+    v2 = 0;
+    v0s = 0;
+    v1s = 0;
+    v2s = 0;
+
+    go_flag = 0;
+ }
+
+ if (go_flag == 1)
  {
   stepper0.runSpeed();
   stepper1.runSpeed();
   stepper2.runSpeed();
  }
+
 
 
 }
