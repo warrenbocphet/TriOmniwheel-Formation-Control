@@ -129,6 +129,31 @@ int threshold_velocity = 400;
 
 float time_limit = 0.0;
 
+int twobytes1int(byte high, byte low)
+{
+  int number;
+
+  number = low | (high << 8);
+  return number;
+}
+
+// for speed scaling
+float largest_of_three(float first, float second, float third)
+{
+  float largest = first;
+  if (abs(second) > abs(largest))
+  {
+    largest = second;
+  }
+
+  if (abs(third) > abs(largest))
+  {
+    largest = third;
+  }
+
+  return abs(largest);
+}
+
 //////////////////////////// For IMU sensor ////////////////////////
 // objects of classes
 LSM9DS1 imu0;
@@ -174,14 +199,25 @@ void tcaselect(uint8_t i) {
 // find average value of 100 reading samples
 float calibrateGyro(LSM9DS1 imu)
 {
+  float valueX = 0;
+  float valueY = 0;
+  float valueZ = 0;
+  
   float value = 0;
   float limit = 100;
+  int i = 0;
 
   // find mean value 
-  for(int i = 0; i < limit; i++)
+  while (i <= 100)
   {
-    imu.readGyro();
-    value += imu.gz;
+    if (imu.gyroAvailable()) 
+    {
+      i++;
+      imu.readGyro();
+      valueX += imu.ax;
+      valueY += imu.ay;
+      valueZ += imu.az;
+    }
   }
 
   return value/limit;
@@ -198,17 +234,22 @@ struct accelOffset calibrateAccel(LSM9DS1 imu)
   float offsetY = 0;
   float offsetZ = 0;
 
-  float limit = 100;
+  int limit = 100;
+  int i = 0;
 
   struct accelOffset offset;
 
-  // find mean value 
-  for(int i = 0; i < limit; i++)
+  // find mean value
+  while (i <= limit)
   {
-    imu.readAccel();
-    valueX += imu.ax;
-    valueY += imu.ay;
-    valueZ += imu.az;
+    if (imu.accelAvailable()) 
+    {
+      i++;
+      imu.readAccel();
+      valueX += imu.ax;
+      valueY += imu.ay;
+      valueZ += imu.az;
+    }
   }
 
   offset.x = valueX/limit;
@@ -216,32 +257,6 @@ struct accelOffset calibrateAccel(LSM9DS1 imu)
   offset.z = valueZ/limit;
 
   return offset;
-}
-
-// for serial communication
-int twobytes1int(byte high, byte low)
-{
-  int number;
-
-  number = low | (high << 8);
-  return number;
-}
-
-// for speed scaling
-float largest_of_three(float first, float second, float third)
-{
-  float largest = first;
-  if (abs(second) > abs(largest))
-  {
-    largest = second;
-  }
-
-  if (abs(third) > abs(largest))
-  {
-    largest = third;
-  }
-
-  return abs(largest);
 }
 
 void setup()
@@ -292,9 +307,6 @@ void setup()
   accelOffsetX0 = offset0.x;
   accelOffsetY0 = offset0.y;
   accelOffsetZ0 = offset0.z;
-
-  // threshold_X = thresholdGyro(imu0, gyroOffset0);
-  // threshold_X = imu0.calcGyro(threshold_X);
   
   /* Initialise the 2nd sensor */
   tcaselect(1);
@@ -305,9 +317,6 @@ void setup()
   accelOffsetX1 = offset1.x;
   accelOffsetY1 = offset1.y;
   accelOffsetZ1 = offset1.z;
-
-  // threshold_Y = thresholdGyro(imu1, gyroOffset1);
-  // threshold_Y = imu1.calcGyro(threshold_Y);
   
    /* Initialise the 3rd sensor */
   tcaselect(2);
@@ -318,9 +327,6 @@ void setup()
   accelOffsetX2 = offset2.x;
   accelOffsetY2 = offset2.y;
   accelOffsetZ2 = offset2.z;
-
-  // threshold_Z = thresholdGyro(imu2, gyroOffset2);
-  // threshold_Z = imu2.calcGyro(threshold_Z);
 
   start1 = millis();
 }
