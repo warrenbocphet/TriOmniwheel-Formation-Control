@@ -19,9 +19,14 @@ float constant_linearVelocity = 400*((wheel_radius*PI)/(resolution*100)); // in 
 
 int i=0;
 int j=0;
+int m=0;
+int n=0;
+
 int a=-1;
 
 int speed0 = -1;
+int speed1 = -1;
+int speed2 = -1;
 
 //////////////////////// For integration /////////////////////////
 
@@ -43,11 +48,6 @@ struct complimentary_gyro gyro0;
 struct complimentary_gyro gyro1;
 struct complimentary_gyro gyro2;
 
-// float gyro0_previous, gyro1_previous, gyro2_previous;
-// float gyro0_now, gyro1_now, gyro2_now;
-// float HPF_gyro0 = 0, HPF_gyro1 = 0, HPF_gyro2 = 0;
-// float LPF_accel0 = 0, LPF_accel1 = 0, LPF_accel2 = 0;
-
 // filtered variable
 float filtered0, filtered1, filtered2;
 int filter_flag = 0;
@@ -58,8 +58,6 @@ const float alpha = 0.7;
 // complimentary filter
 const float gyroCoef = 0.6;
 const float accCoef = 0.4;
-
-// float comWheel0 = 0, comWheel1 = 0, comWheel2 = 0;
 
 void complimentary_filter (int id, float gyro_reading)
 {
@@ -80,7 +78,6 @@ void complimentary_filter (int id, float gyro_reading)
   gyro_fnc->LPF_gyro = gyro_fnc->gyro_now*alpha + (gyro_fnc->LPF_gyro*(1.0 - alpha)); // in degree/s
   gyro_fnc->comWheel = (gyroCoef*(gyro_fnc->comWheel + gyro_fnc->HPF_gyro) + (accCoef*gyro_fnc->LPF_gyro));
 }
-
 
 //////////////////////////// For IMU sensor ////////////////////////
 // objects of classes
@@ -161,18 +158,6 @@ void setup()
   stepper2.setMaxSpeed(8000);
 
   // for IMU sensor
-//  imu0.settings.device.commInterface = IMU_MODE_I2C;
-//  imu0.settings.device.mAddress = LSM9DS1_M;
-//  imu0.settings.device.agAddress = LSM9DS1_AG;
-//  
-//  imu1.settings.device.commInterface = IMU_MODE_I2C;
-//  imu1.settings.device.mAddress = LSM9DS1_M;
-//  imu1.settings.device.agAddress = LSM9DS1_AG;
-//  
-//  imu2.settings.device.commInterface = IMU_MODE_I2C;
-//  imu2.settings.device.mAddress = LSM9DS1_M;
-//  imu2.settings.device.agAddress = LSM9DS1_AG;
-
   /* Initialise the 1st sensor */
   tcaselect(0);
   while(!imu0.begin());  
@@ -202,16 +187,24 @@ void loop()
     {
       i++;
       j = (i%8)*100;
+      m = -(i%8)*100;
+      n = pow(-1,i)*(i%8)*50;
+      
       stepper0.setSpeed(j);
+      stepper1.setSpeed(m);
+      stepper2.setSpeed(n);
     } else if (a == 1) {    
       Serial.println(speed0);
+      Serial.println(speed1);
+      Serial.println(speed2);
     }
    }
 
    if (elapsedTime1 > time_frame) // get IMU reading
    {
       start1 = millis();
-      // wheel 0
+      
+      ///////////// wheel 0 ///////////////
       tcaselect(0);
       if (imu0.gyroAvailable())
        imu0.readGyro();
@@ -219,12 +212,6 @@ void loop()
 
       if (filter_flag == 1)
       {
-        // complimentary filter
-        // gyro0_now = gyro0;
-        // HPF_gyro0 = HPF_gyro0*alpha + alpha*(gyro0_now - gyro0_previous);
-
-        // LPF_accel0 = gyro0_now*alpha + (LPF_accel0*(1.0 - alpha)); // in degree/s
-        // comWheel0 = (gyroCoef*(comWheel0 + HPF_gyro0) + (accCoef*LPF_accel0));
         complimentary_filter(0, gyroReading0);
 
         // kalman filter
@@ -236,9 +223,55 @@ void loop()
       } 
 
       gyro0.gyro_previous = gyroReading0;
-      filter_flag = 1;
+
+      ///////////// wheel 1 ///////////////
+      tcaselect(1);
+      if (imu1.gyroAvailable())
+       imu1.readGyro();
+      gyroReading1 = imu1.calcGyro(imu1.gz - gyroOffset1);
+
+      if (filter_flag == 1)
+      {
+        complimentary_filter(1, gyroReading1);
+
+        // kalman filter
+
+      
+        // converting unit
+        filtered1 = ((gyro1.comWheel/180.0)*PI)*wheel_radius; // convert to rad/s and then cm/s 
+        speed1 = (gyro1.comWheel/360.0)*1600.0; // from degree/s to step/s
+      } 
+
+      gyro1.gyro_previous = gyroReading1;
+
+      ///////////// wheel 2 ///////////////
+      tcaselect(2);
+      if (imu2.gyroAvailable())
+       imu2.readGyro();
+      gyroReading2 = imu2.calcGyro(imu2.gz - gyroOffset2);
+
+      if (filter_flag == 1)
+      {
+        complimentary_filter(2, gyroReading2);
+
+        // kalman filter
+
+      
+        // converting unit
+        filtered2 = ((gyro2.comWheel/180.0)*PI)*wheel_radius; // convert to rad/s and then cm/s 
+        speed2 = (gyro2.comWheel/360.0)*1600.0; // from degree/s to step/s
+      } 
+
+      gyro2.gyro_previous = gyroReading2;
+          
+      filter_flag = 1; // After get the first data, this flag set to 1. 
+                       // Having this flag helps me to know which data is the previous data and which is the current, just aquired data.
+
+      ///////// Done getting and filtering data ///////////
    }
     
   
    stepper0.runSpeed();
+   stepper1.runSpeed();
+   stepper2.runSpeed();
 }
