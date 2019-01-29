@@ -28,56 +28,10 @@ int speed0 = -1;
 int speed1 = -1;
 int speed2 = -1;
 
-//////////////////////// For integration /////////////////////////
-
-
-
-//////////////////////// For filtering ///////////////////////////
-
-// gyroscope
-
-struct complimentary_gyro // keep track of all the variable for the complimentary filter on each gyroscope
-{
-  float gyro_now = 0, gyro_previous = 0;
-  float HPF_gyro = 0, LPF_gyro = 0;
-  float comWheel = 0;
-  float filtered = 0;
-};
-
-struct complimentary_gyro gyro0;
-struct complimentary_gyro gyro1;
-struct complimentary_gyro gyro2;
-
-// filtered variable
-float filtered0, filtered1, filtered2;
 int filter_flag = 0;
 
-// high pass and low pass filter
-const float alpha = 0.7;
+//////////////////////// For integration /////////////////////////
 
-// complimentary filter
-const float gyroCoef = 0.6;
-const float accCoef = 0.4;
-
-void complimentary_filter (int id, float gyro_reading)
-{
-  struct complimentary_gyro* gyro_fnc; 
-  float gyro_reading_fnc = gyro_reading;
-
-  if (id == 0) {
-    gyro_fnc = &gyro0;
-  } else if (id == 1) {
-    gyro_fnc = &gyro1;
-  } else if (id == 2) {
-    gyro_fnc = &gyro2;
-  }
-
-  gyro_fnc->gyro_now = gyro_reading_fnc;
-  gyro_fnc->HPF_gyro = gyro_fnc->HPF_gyro*alpha + alpha*(gyro_fnc->gyro_now - gyro_fnc->gyro_previous);
-
-  gyro_fnc->LPF_gyro = gyro_fnc->gyro_now*alpha + (gyro_fnc->LPF_gyro*(1.0 - alpha)); // in degree/s
-  gyro_fnc->comWheel = (gyroCoef*(gyro_fnc->comWheel + gyro_fnc->HPF_gyro) + (accCoef*gyro_fnc->LPF_gyro));
-}
 
 //////////////////////////// For IMU sensor ////////////////////////
 // objects of classes
@@ -107,6 +61,39 @@ void tcaselect(uint8_t i) {
   Wire.endTransmission();  
 }
 
+void setupGyro(LSM9DS1 imu)
+{
+  // [enabled] turns the gyro on or off.
+  imu.settings.gyro.enabled = true;  // Enable the gyro
+  // [scale] sets the full-scale range of the gyroscope.
+  // scale can be set to either 245, 500, or 2000
+  imu.settings.gyro.scale = 245; // Set scale to +/-245dps
+  // [sampleRate] sets the output data rate (ODR) of the gyro
+  // sampleRate can be set between 1-6
+  // 1 = 14.9    4 = 238
+  // 2 = 59.5    5 = 476
+  // 3 = 119     6 = 952
+  imu.settings.gyro.sampleRate = 2; // 59.5Hz ODR
+  // [bandwidth] can set the cutoff frequency of the gyro.
+  // Allowed values: 0-3. Actual value of cutoff frequency
+  // depends on the sample rate. (Datasheet section 7.12)
+  imu.settings.gyro.bandwidth = 0;
+  // [lowPowerEnable] turns low-power mode on or off.
+  imu.settings.gyro.lowPowerEnable = false; // LP mode off
+  // [HPFEnable] enables or disables the high-pass filter
+  imu.settings.gyro.HPFEnable = true; // HPF disabled
+  // [HPFCutoff] sets the HPF cutoff frequency (if enabled)
+  // Allowable values are 0-9. Value depends on ODR.
+  // (Datasheet section 7.14)
+  imu.settings.gyro.HPFCutoff = 1; // HPF cutoff = 4Hz
+  // [flipX], [flipY], and [flipZ] are booleans that can
+  // automatically switch the positive/negative orientation
+  // of the three gyro axes.
+  imu.settings.gyro.flipX = false; // Don't flip X
+  imu.settings.gyro.flipY = false; // Don't flip Y
+  imu.settings.gyro.flipZ = false; // Don't flip Z
+}
+
 // find average value of 100 reading samples
 float calibrateGyro(LSM9DS1 imu)
 {  
@@ -131,7 +118,7 @@ float calibrateGyro(LSM9DS1 imu)
 ////////////////// For keeping track of time ////////////////
 unsigned long start1 = 0;
 unsigned int elapsedTime1 = 0;
-unsigned int time_frame = 200;
+unsigned int time_frame = 25;
 
 ////////////////// Setup and Loop ///////////////////////////
 
@@ -161,16 +148,19 @@ void setup()
   /* Initialise the 1st sensor */
   tcaselect(0);
   while(!imu0.begin());  
+  setupGyro(imu0);
   gyroOffset0 = calibrateGyro(imu0);
   
   /* Initialise the 2nd sensor */
   tcaselect(1);
   while(!imu1.begin());
+  setupGyro(imu1);
   gyroOffset1 = calibrateGyro(imu1);
   
    /* Initialise the 3rd sensor */
   tcaselect(2);
   while(!imu2.begin());
+  setupGyro(imu2);
   gyroOffset2 = calibrateGyro(imu2);
 
   start1 = millis();
@@ -186,13 +176,14 @@ void loop()
     if (a == 0)
     {
       i++;
-      j = (i%8)*100;
+      j = (i%11)*100;
       m = -(i%8)*100;
       n = pow(-1,i)*(i%8)*50;
       
       stepper0.setSpeed(j);
       stepper1.setSpeed(m);
       stepper2.setSpeed(n);
+
     } else if (a == 1) {    
       Serial.println(speed0);
       Serial.println(speed1);
@@ -212,17 +203,11 @@ void loop()
 
       if (filter_flag == 1)
       {
-        complimentary_filter(0, gyroReading0);
-
         // kalman filter
 
-
         // converting unit
-        filtered0 = ((gyro0.comWheel/180.0)*PI)*wheel_radius; // convert to rad/s and then cm/s 
-        speed0 = (gyro0.comWheel/360.0)*1600.0; // from degree/s to step/s
+        speed0 = (gyroReading0/360.0)*1600.0; // from degree/s to step/s
       } 
-
-      gyro0.gyro_previous = gyroReading0;
 
       ///////////// wheel 1 ///////////////
       tcaselect(1);
@@ -232,17 +217,11 @@ void loop()
 
       if (filter_flag == 1)
       {
-        complimentary_filter(1, gyroReading1);
-
         // kalman filter
-
       
         // converting unit
-        filtered1 = ((gyro1.comWheel/180.0)*PI)*wheel_radius; // convert to rad/s and then cm/s 
-        speed1 = (gyro1.comWheel/360.0)*1600.0; // from degree/s to step/s
+        speed1 = (gyroReading1/360.0)*1600.0; // from degree/s to step/s
       } 
-
-      gyro1.gyro_previous = gyroReading1;
 
       ///////////// wheel 2 ///////////////
       tcaselect(2);
@@ -252,17 +231,11 @@ void loop()
 
       if (filter_flag == 1)
       {
-        complimentary_filter(2, gyroReading2);
-
         // kalman filter
-
-      
+    
         // converting unit
-        filtered2 = ((gyro2.comWheel/180.0)*PI)*wheel_radius; // convert to rad/s and then cm/s 
-        speed2 = (gyro2.comWheel/360.0)*1600.0; // from degree/s to step/s
+        speed2 = (gyroReading2/360.0)*1600.0; // from degree/s to step/s
       } 
-
-      gyro2.gyro_previous = gyroReading2;
           
       filter_flag = 1; // After get the first data, this flag set to 1. 
                        // Having this flag helps me to know which data is the previous data and which is the current, just aquired data.
