@@ -131,7 +131,7 @@ float calibrateGyro(LSM9DS1 imu)
 ////////////////// For keeping track of time ////////////////
 unsigned long start1 = 0;
 unsigned int elapsedTime1 = 0;
-unsigned int time_frame = 25;
+unsigned int time_frame = 200;
 
 ////////////////// Setup and Loop ///////////////////////////
 
