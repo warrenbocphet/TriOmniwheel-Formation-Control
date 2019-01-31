@@ -237,46 +237,46 @@ float filtered0 = 0;
 float filtered1 = 0;
 float filtered2 = 0;
 
-struct KF_parameter	{
-	float Q = 1e-4;
-	float R = 0.1*0.1;
+struct KF_parameter  {
+  float Q = 1e-4;
+  float R = 0.1*0.1;
 
-	float xhat = 0;
-	float P = 0;
-	float xhatminus = 0;
-	float Pminus = 0;
-	float K = 0;
+  float xhat = 0;
+  float P = 0;
+  float xhatminus = 0;
+  float Pminus = 0;
+  float K = 0;
 
-	float z;
+  float z;
 };
 
 struct KF_parameter KF_0;
 struct KF_parameter KF_1;
 struct KF_parameter KF_2;
 
-float KF_filter(int id, float data)	{
-	struct KF_parameter* KF_fnc;
+float KF_filter(int id, float data) {
+  struct KF_parameter* KF_fnc;
 
-	if (id == 0) {
-		KF_fnc = &KF_0;
-	} else if (id == 1)	{
-		KF_fnc = &KF_1;
-	} else if (id == 2)	{
-		KF_fnc = &KF_2;
-	}
+  if (id == 0) {
+    KF_fnc = &KF_0;
+  } else if (id == 1) {
+    KF_fnc = &KF_1;
+  } else if (id == 2) {
+    KF_fnc = &KF_2;
+  }
 
-	KF_fnc->z = data;	
+  KF_fnc->z = data; 
 
-	// time update
-	KF_fnc->xhatminus = KF_fnc->xhat;
-	KF_fnc->Pminus = KF_fnc->P + KF_fnc->Q;
+  // time update
+  KF_fnc->xhatminus = KF_fnc->xhat;
+  KF_fnc->Pminus = KF_fnc->P + KF_fnc->Q;
 
-	// measurement update
-	KF_fnc->K = (KF_fnc->Pminus)/(KF_fnc->Pminus + KF_fnc->R);
-	KF_fnc->xhat = KF_fnc->xhatminus + (KF_fnc->K)*(KF_fnc->z - KF_fnc->xhatminus);
-	KF_fnc->P = (1 - KF_fnc->K)*(KF_fnc->Pminus);
+  // measurement update
+  KF_fnc->K = (KF_fnc->Pminus)/(KF_fnc->Pminus + KF_fnc->R);
+  KF_fnc->xhat = KF_fnc->xhatminus + (KF_fnc->K)*(KF_fnc->z - KF_fnc->xhatminus);
+  KF_fnc->P = (1 - KF_fnc->K)*(KF_fnc->Pminus);
 
-	return KF_fnc->xhat;
+  return KF_fnc->xhat;
 }
 
 ////////////////// Setup and Loop ///////////////////////////
@@ -338,7 +338,7 @@ void loop()
    if (Serial.available())
    {
     a = Serial.read();
-  	if (a == 255) // get coordinate
+    if (a == 255) // get coordinate
     {
       Serial.readBytes(buf, 12);
       targetX_H = buf[0];
@@ -537,33 +537,33 @@ void loop()
     v_y = dy/time_limit;
     w = dphi/time_limit;
     
-	  /////////// Calculate require speed of 3 wheels //////////////
+    /////////// Calculate require speed of 3 wheels //////////////
 
-	  // find v, v_n
-	  v = v_x*cos(phi) + v_y*sin(phi);
-	  v_n = -v_x*sin(phi) + v_y*cos(phi);
+    // find v, v_n
+    v = v_x*cos(-phi+PI) + v_y*sin(-phi+PI);
+    v_n = -v_x*sin(-phi+PI) + v_y*cos(-phi+PI);
 
-	  // find v_0, v_1, v_2
-	  v0 = -v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
-	  v1 =              - v_n           + w*rover_radius;
-	  v2 =  v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
+    // find v_0, v_1, v_2
+    v0 = -v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
+    v1 =              - v_n           + w*rover_radius;
+    v2 =  v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
 
-	  // convert it back to step/s
-   	  v0s = v0 * ((resolution*100)/(wheel_radius*PI));
-   	  v1s = v1 * ((resolution*100)/(wheel_radius*PI));
-   	  v2s = v2 * ((resolution*100)/(wheel_radius*PI));
+    // convert it back to step/s
+      v0s = v0 * ((resolution*100)/(wheel_radius*PI));
+      v1s = v1 * ((resolution*100)/(wheel_radius*PI));
+      v2s = v2 * ((resolution*100)/(wheel_radius*PI));
 
-   	  // scale down v_0, v_1, v_2 if necessary
-	  if (abs(v0s) > threshold_velocity || abs(v1s) > threshold_velocity || abs(v2s) > threshold_velocity)
-	  {
-	    // find the largest velocity
-	    largest_vel = largest_of_three(v0s, v1s, v2s);
-	  
-	    // scale down
-	    v0s = v0s/largest_vel*threshold_velocity;
-	    v1s = v1s/largest_vel*threshold_velocity;
-	    v2s = v2s/largest_vel*threshold_velocity;
-	  }
+      // scale down v_0, v_1, v_2 if necessary
+    if (abs(v0s) > threshold_velocity || abs(v1s) > threshold_velocity || abs(v2s) > threshold_velocity)
+    {
+      // find the largest velocity
+      largest_vel = largest_of_three(v0s, v1s, v2s);
+    
+      // scale down
+      v0s = v0s/largest_vel*threshold_velocity;
+      v1s = v1s/largest_vel*threshold_velocity;
+      v2s = v2s/largest_vel*threshold_velocity;
+    }
 
       stepper0.runSpeed();
       stepper1.runSpeed();
@@ -580,7 +580,7 @@ void loop()
       if (filter_flag == 1)
       {
         // kalman filter
-      	filtered0 = KF_filter(0, gyroReading0); // degree/s
+        filtered0 = KF_filter(0, gyroReading0); // degree/s
 
         // converting unit
         speed0 = ((filtered0/360.0)*(2*PI))*wheel_radius; // convert to rad/s then cm/s
@@ -638,39 +638,39 @@ void loop()
       ///////// Start integration to find (x,y) ///////////
 
       // recalculate v_x, v_y, w
-	  w = 1/(3*rover_radius)*(speed0 + speed1 + speed2);
-	  v = (sqrt(3)/3)*(speed2 - speed0);
-	  v_n = 1/3.0*(speed2 + speed0) - 2/3.0*speed1;
+    w = 1/(3*rover_radius)*(speed0 + speed1 + speed2);
+    v = (sqrt(3)/3)*(speed2 - speed0);
+    v_n = 1/3.0*(speed2 + speed0) - 2/3.0*speed1;
 
-	  v_x = v*cos(phi) - v_n*sin(phi);
-	  v_y = v*sin(phi) + v_n*cos(phi);
+    v_x = v*cos(-phi+PI) - v_n*sin(-phi+PI);
+    v_y = v*sin(-phi+PI) + v_n*cos(-phi+PI);
 
-	  elapsedTime2 = millis() - start2;
-	  start2 = millis();
+    elapsedTime2 = millis() - start2;
+    start2 = millis();
 
-	  // calculate x, y phi
-	  x = x + v_x*elapsedTime2/1000.0;
-	  y = y + v_y*elapsedTime2/1000.0;
-	  phi = phi + w*elapsedTime2/1000.0;
+    // calculate x, y phi
+    x = x + v_x*elapsedTime2/1000.0;
+    y = y + v_y*elapsedTime2/1000.0;
+    phi = phi + w*elapsedTime2/1000.0;
 
-  	stepper0.setSpeed(v0s);
-	  stepper1.setSpeed(v1s);
-	  stepper2.setSpeed(v2s);
+    stepper0.setSpeed(v0s);
+    stepper1.setSpeed(v1s);
+    stepper2.setSpeed(v2s);
 
-	  // stopping condition
-	  if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.015)
-	  {
-	    // stop
-	    stepper0.stop();
-	    stepper1.stop();
-	    stepper2.stop();
+    // stopping condition
+    if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.015)
+    {
+      // stop
+      stepper0.stop();
+      stepper1.stop();
+      stepper2.stop();
 
-	    stepper0.setSpeed(0);
-	    stepper1.setSpeed(0);
-	    stepper2.setSpeed(0);
+      stepper0.setSpeed(0);
+      stepper1.setSpeed(0);
+      stepper2.setSpeed(0);
 
       start_flag = 0;
-	  } 
+    } 
    }
 
    stepper0.runSpeed();
