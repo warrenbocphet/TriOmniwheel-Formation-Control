@@ -12,10 +12,10 @@ AccelStepper stepper1(AccelStepper::DRIVER, 3, 6);
 AccelStepper stepper2(AccelStepper::DRIVER, 4, 7);
 
 int resolution = 8;
-int threshold_velocity = 800; // in step/s
+int threshold_velocity = 400; // in step/s
 float rover_radius = 19.3; // in cm
 float wheel_radius = 5.22; // in cm
-float constant_linearVelocity = 2*threshold_velocity*((wheel_radius*PI)/(resolution*100)); // in cm/s
+float constant_linearVelocity = threshold_velocity*((wheel_radius*PI)/(resolution*100)); // in cm/s
 
 //////////////////// For serial communication ////////////////////
 byte a;
@@ -519,24 +519,24 @@ void loop()
       stepper1.runSpeed();
       stepper2.runSpeed();
 
-      ///////////// Controller (calculate linear velocity) ////////////
+    ///////////// Controller (calculate linear velocity) ////////////
 
-      // find dx, dy, dphi
-	  dx = targetX - x;
-	  dy = targetY - y;
-	  dphi = targetPhi - phi;
-	  
-	  time_limit = sqrt(dx*dx + dy*dy);
+    // find dx, dy, dphi
+    dx = targetX - x;
+    dy = targetY - y;
+    dphi = targetPhi - phi;
+    
+    time_limit = sqrt(dx*dx + dy*dy)/constant_linearVelocity;
 
-	  if (time_limit == 0)
-	  {
-	   time_limit = 1;
-	  }
-	  
-	  v_x = dx/time_limit;
-	  v_y = dy/time_limit;
-	  w = dphi/time_limit;
-
+    if (time_limit == 0)
+    {
+     time_limit = 1;
+    }
+    
+    v_x = dx/time_limit;
+    v_y = dy/time_limit;
+    w = dphi/time_limit;
+    
 	  /////////// Calculate require speed of 3 wheels //////////////
 
 	  // find v, v_n
