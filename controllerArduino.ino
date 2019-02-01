@@ -124,6 +124,13 @@ float largest_of_three(float first, float second, float third)
   return abs(largest);
 }
 
+float phi_initial = PI;
+
+float phi_t(float phi)
+{
+  return (-phi + phi_initial);
+}
+
 
 //////////////////////////// For IMU sensor ////////////////////////
 // objects of classes
@@ -190,6 +197,7 @@ void setupGyro(LSM9DS1 imu)
   // Allowable values are 0-9. Value depends on ODR.
   // (Datasheet section 7.14)
   imu.settings.gyro.HPFCutoff = 1; // HPF cutoff = 4Hz
+  // Set the acquiring sensor data mode to be continuous (discard old data as new data comes in)
   imu.enableFIFO();
   imu.setFIFO(FIFO_CONT, 0x01);
   // [flipX], [flipY], and [flipZ] are booleans that can
@@ -508,6 +516,11 @@ void loop()
       Serial.write(timer_send_h);
       Serial.write(timer_send_l);
     }
+
+    if (a == 252)
+    {
+      threshold_velocity = Serial.read()*10; // set threshold_velocity
+    }
     
    }
 
@@ -540,8 +553,8 @@ void loop()
     /////////// Calculate require speed of 3 wheels //////////////
 
     // find v, v_n
-    v = v_x*cos(-phi+PI) + v_y*sin(-phi+PI);
-    v_n = -v_x*sin(-phi+PI) + v_y*cos(-phi+PI);
+    v = v_x*cos(phi_t(phi)) + v_y*sin(phi_t(phi));
+    v_n = -v_x*sin(phi_t(phi)) + v_y*cos(phi_t(phi));
 
     // find v_0, v_1, v_2
     v0 = -v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
@@ -642,8 +655,8 @@ void loop()
     v = (sqrt(3)/3)*(speed2 - speed0);
     v_n = 1/3.0*(speed2 + speed0) - 2/3.0*speed1;
 
-    v_x = v*cos(-phi+PI) - v_n*sin(-phi+PI);
-    v_y = v*sin(-phi+PI) + v_n*cos(-phi+PI);
+    v_x = v*cos(phi_t(phi)) - v_n*sin(phi_t(phi));
+    v_y = v*sin(phi_t(phi)) + v_n*cos(phi_t(phi));
 
     elapsedTime2 = millis() - start2;
     start2 = millis();
