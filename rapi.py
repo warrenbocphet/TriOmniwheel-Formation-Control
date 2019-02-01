@@ -66,3 +66,7 @@ def getState(ser):
 
 def reset_state(ser):
     ser.write([254])
+    
+def send_const_linear_spd(ser, speed):
+    ser.write([252])
+    ser.write([speed])
