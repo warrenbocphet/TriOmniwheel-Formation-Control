@@ -13,7 +13,7 @@ AccelStepper stepper2(AccelStepper::DRIVER, 4, 7);
 
 int resolution = 8;
 int threshold_velocity = 400; // in step/s
-float rover_radius = 19.3; // in cm
+float rover_radius = 13.7; // in cm
 float wheel_radius = 5.22; // in cm
 float constant_linearVelocity = threshold_velocity*((wheel_radius*PI)/(resolution*100)); // in cm/s
 
@@ -106,7 +106,6 @@ float speed0 = 0, speed1 = 0, speed2 = 0;
 int speed0s = 0, speed1s = 0, speed2s = 0;
 
 float time_limit = 0.0;
-unsigned long timer = 0;
 
 float largest_of_three(float first, float second, float third)
 {
@@ -234,6 +233,8 @@ unsigned long start1 = 0;
 unsigned int elapsedTime1 = 0;
 unsigned long start2 = 0;
 unsigned int elapsedTime2 = 0;
+unsigned long start3 = 0;
+unsigned int elapsedTime3 = 0;
 
 unsigned int time_frame = 25;
 
@@ -337,11 +338,13 @@ void setup()
 
   start1 = millis();
   start2 = millis();
+  start3 = millis();
 }
 
 void loop()
 {
    elapsedTime1 = millis() - start1;
+   elapsedTime3 = millis() - start3;
 
    if (Serial.available())
    {
@@ -390,7 +393,7 @@ void loop()
       y = 0;
       phi = 0;
       start1 = millis();
-      timer = 0;
+      start3 = millis();
     }
 
     if (a == 253) // send state to RPI
@@ -511,20 +514,15 @@ void loop()
 
       }
 
-      timer_send_h = (timer >> 8) & 0xFF;
-      timer_send_l = (timer & 0xFF);
+      timer_send_h = (elapsedTime3 >> 8) & 0xFF;
+      timer_send_l = (elapsedTime3 & 0xFF);
       Serial.write(timer_send_h);
       Serial.write(timer_send_l);
     }
 
-    if (a == 252)
-    {
-      threshold_velocity = Serial.read()*10; // set threshold_velocity
-    }
-    
    }
 
-   if (elapsedTime1 > time_frame && start_flag == 1)
+   if (elapsedTime1 > time_frame && start_flag == 1 && elapsedTime3 > targetTime)
    {
       start1 = millis();
 
