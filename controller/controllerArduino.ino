@@ -1,5 +1,6 @@
 ///////////////////////////// Library /////////////////////////////
 #include <Encoder.h>
+#include <PID_v1.h>
 
 ///////////////////////////// DC motors /////////////////////////////
 const int int1 = A0; // motor 0
@@ -32,7 +33,27 @@ float displacement0 = 0;
 float displacement1 = 0;
 float displacement2 = 0;
 
-int countPerRotation = 2840;
+int countPerRotation = 2797;
+
+/////////////////////////// PID ////////////////////////////
+struct motorPID_parameter	{
+	double Setpoint; 
+	double Input; 
+	double Output; 
+};
+
+struct motorPID_parameter motor0;
+struct motorPID_parameter motor1;
+struct motorPID_parameter motor2;
+
+//PID parameters
+double Kp=7, Ki=3, Kd=0; 
+ 
+//create PID instance 
+PID motorPID0(&motor0.Input, &motor0.Output, &motor0.Setpoint, Kp, Ki, Kd, DIRECT);
+PID motorPID1(&motor1.Input, &motor1.Output, &motor1.Setpoint, Kp, Ki, Kd, DIRECT);
+PID motorPID2(&motor2.Input, &motor2.Output, &motor2.Setpoint, Kp, Ki, Kd, DIRECT);
+
 
 ////////////////// For keeping track of time ////////////////
 unsigned long start0 = 0;
@@ -45,7 +66,7 @@ unsigned long start3 = 0;
 unsigned int elapsedTime3 = 0;
 
 unsigned int time_frame0 = 10;
-unsigned int time_frame1 = 100;
+unsigned int time_frame1 = 10;
 
 //////////////////////// For integration /////////////////////////
 
@@ -83,6 +104,7 @@ float phi_t(float phi)
 {
   return (-phi + phi_initial);
 }
+
 //////////////////// For serial communication ////////////////////
 byte a;
 byte buf[9];
@@ -376,6 +398,22 @@ void loop() {
       v2 =  v*sin(PI/3) + v_n*cos(PI/3) + w*rover_radius;
 
       // Output speed to each of the wheels
+      	// PID control
+      	motor0.Setpoint = v0; // in cm/s
+      	motor1.Setpoint = v1;
+      	motor2.Setpoint = v2;
+
+      	motor0.Input = speed0; // in cm/s
+      	motor1.Input = speed1;
+      	motor2.Input = speed2;	
+
+		motorPID0.Compute();
+		motorPID1.Compute();
+		motorPID2.Compute();
+
+		analogWrite(enA, motor0.Output);
+		analogWrite(enB, motor1.Output);
+		analogWrite(enC, motor2.Output);
 
 
     }  
@@ -386,13 +424,17 @@ void loop() {
       start1 = millis();
 
       // Get encoder data
-      displacement0 = (enc0.read() - posPrevious0)/countPerRotation*(2*PI*wheel_radius);
+      displacement0 = (enc0.read() - posPrevious0)/countPerRotation*(2*PI*wheel_radius); //in encoder count
       displacement1 = (enc1.read() - posPrevious1)/countPerRotation*(2*PI*wheel_radius);
       displacement2 = (enc2.read() - posPrevious2)/countPerRotation*(2*PI*wheel_radius);
 
-      posPrevious0 = enc0.read();
+      posPrevious0 = enc0.read(); //in encoder count
       posPrevious1 = enc1.read();
       posPrevious2 = enc2.read();
+
+      speed0 = (displacement0/countPerRotation)*(2*PI*rover_radius)/time_frame0; // convert to cm/s
+      speed1 = (displacement1/countPerRotation)*(2*PI*rover_radius)/time_frame0;
+      speed2 = (displacement2/countPerRotation)*(2*PI*rover_radius)/time_frame0;
 
       // Done getting data, start integration
         // recalculating v_x, v_y and w
@@ -415,6 +457,9 @@ void loop() {
       if (abs(dx) < 0.5 && abs(dy) < 0.5 && abs(dphi) < 0.015)
       {
         // stop
+        analogWrite(enA, 0);
+		analogWrite(enB, 0);
+		analogWrite(enC, 0);
 
       }
     }  
