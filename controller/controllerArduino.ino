@@ -29,6 +29,29 @@ int twobytes1int(byte high, byte low)
   return number;
 }
 
+struct byteInt  {
+  	int number;
+  	byte high;
+  	byte low;
+};
+
+struct byteInt xSend;
+struct byteInt ySend;
+struct byteInt phiSend;
+
+void int2bytes(struct byteInt* number_fnc)	{
+	int magnituteNumber;
+	if (number_fnc->number >= 0)	{
+		number_fnc->high = (number_fnc->number >> 8) & 0xFF;
+		number_fnc->low = (number_fnc->number & 0xFF);
+	} else {
+		magnituteNumber = number_fnc->number * -1;
+		number_fnc->high = (magnituteNumber >> 8) & 0xFF;
+		number_fnc->high = number_fnc->high ^ 0x80;
+		number_fnc->low = magnituteNumber & 0xFF;
+	}
+}
+
 ///////////////////////////// DC motors /////////////////////////////
 const int int1 = A0; // motor 0
 const int int2 = A1;
@@ -190,10 +213,29 @@ void setup() {
   } else  {
     Serial.println(" YES WIFI!!! ");
     Serial.println("Now connecting to laptop.");
-    if (client.connect(server, 1234))  {
+    int j = client.connect(server, 1234);
+    if (j == 1)  {
       Serial.println("I'm innnnnnnnnnn!");
+    } else if (j == -1) {
+      while(true) {
+        Serial.println("Time out!");
+      }
+    } else if (j == -2) {
+      while(true) {
+        Serial.println("Invalid_server");
+      }
+    } else if (j == -3) {      
+      while(true) {
+        Serial.println("Truncated.");
+      }
+    } else if (j == -4) {
+      while(true) {
+        Serial.println("Invalid response!");
+      }
     }
   }
+
+  delay(500);
 
 }
 
@@ -203,35 +245,63 @@ void loop() {
   elapsedTime2 = millis() - start2;
   
   if (client.available()) {
-    while (client.available())  {
-      buf[i] = client.read();
-      i++;
-    }
+    int a = client.read();
+    if (a == 0)	{ // receive new target
+      Serial.println("I received a coordinate.");
 
-    targetX = twobytes1int(buf[0], buf[1]);
-    targetY = twobytes1int(buf[2], buf[3]);
-    targetPhi = twobytes1int(buf[4], buf[5]);
-    targetPhi = targetPhi/180*PI;
-    Serial.print("target: ");
-    Serial.print(targetX);
-    Serial.print(" ");
-    Serial.print(targetY);
-    Serial.print(" ");
-    Serial.println(targetPhi);
-    i = 0;
-  }
+      while (i<6) {
+        if (client.available()) {
+          buf[i] = client.read();
+          Serial.print("buf[");
+          Serial.print(i);
+          Serial.print("]: ");
+          Serial.println(buf[i]);
+          i++;
+        }
+      }
+      
+//	    while (client.available())  {
+//	      buf[i] = client.read();
+//        Serial.print("buf[");
+//        Serial.print(i);
+//        Serial.print("]: ");
+//        Serial.println(buf[i]);
+//	      i++;
+//	    }
 
-//  // Adaptive tuning Kp, Ki
-//  if (abs(dx) < 10 && abs(dy) < 10 && abs(dphi) < PI/5)
-//  {
-//    Kp = 4.4;
-//    Ki = 14.0;
-//    Kd = 0.0;
-//    motorPID0.SetTunings(Kp, Ki, Kd);
-//    motorPID1.SetTunings(Kp, Ki, Kd);
-//    motorPID2.SetTunings(Kp, Ki, Kd);
-//  }
-//  
+      Serial.print("I received: ");
+      Serial.print(i);
+      Serial.println(" bytes");
+
+	    targetX = twobytes1int(buf[0], buf[1]);
+	    targetY = twobytes1int(buf[2], buf[3]);
+	    targetPhi = twobytes1int(buf[4], buf[5]);
+	    Serial.print("target: ");
+	    Serial.print(targetX);
+	    Serial.print(" ");
+	    Serial.print(targetY);
+	    Serial.print(" ");
+	    Serial.println(targetPhi);
+      Serial.println();
+      targetPhi = targetPhi/180*PI;
+	    i = 0;
+	} else if (a == 1) { // send back current coordinate
+		xSend.number = x;
+		ySend.number = y;
+		phiSend.number = (int) phi/PI*180.0;
+
+		int2bytes(&xSend);
+		int2bytes(&ySend);
+		int2bytes(&phiSend);
+
+		byte sendCoorArray[] = {xSend.high, xSend.low, ySend.high, ySend.low, phiSend.high, phiSend.low};	
+		client.write(sendCoorArray, 6);
+
+	} else if (a == 2) { // something else. (set current coordinate to be sth else?)
+
+	}
+ }
+
   /////////////////////////// Controller /////////////////////////
   if (elapsedTime0 > time_frame0) // calculate required speed
   {
@@ -309,13 +379,13 @@ void loop() {
     y = y + v_y * elapsedTime1 / 1000000.0;
     phi = phi + w * elapsedTime1 / 1000000.0;
 
-     Serial.print("X, Y, Phi: ");
-     Serial.print(x);
-     Serial.print(", ");
-     Serial.print(y);
-     Serial.print(", ");
-     Serial.println(phi);
-     Serial.println(" ");
+//     Serial.print("X, Y, Phi: ");
+//     Serial.print(x);
+//     Serial.print(", ");
+//     Serial.print(y);
+//     Serial.print(", ");
+//     Serial.println(phi);
+//     Serial.println(" ");
 
     // stopping condition
     if (abs(dx) < 1 && abs(dy) < 1 && abs(dphi) < 0.035)
@@ -328,7 +398,7 @@ void loop() {
       v1 = 0;
       v2 = 0;
 
-      Serial.println("I'm here!");
+//      Serial.println("I'm here!");
     }
   }
 
