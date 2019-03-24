@@ -1,4 +1,5 @@
 import socket
+import time
 
 def coor2bytes(coor_fnc):
 	coorByte = [0, 0, 0, 0, 0, 0]
@@ -32,6 +33,15 @@ def coor2bytes(coor_fnc):
 
 	return coorByte
 
+def bytes2coor(byte_fnc):
+	receivedCoor_fnc = [0, 0, 0]
+
+	receivedCoor_fnc[0] = int((byte_fnc[0]>>7))*int((byte_fnc[1] | (((byte_fnc[0]<<1)>>1)<<8)))
+	receivedCoor_fnc[1] = int((byte_fnc[2]>>7))*int((byte_fnc[3] | (((byte_fnc[2]<<1)>>1)<<8)))
+	receivedCoor_fnc[2] = int((byte_fnc[4]>>7))*int((byte_fnc[5] | (((byte_fnc[4]<<1)>>1)<<8)))
+
+	return receivedCoor_fnc
+
 if __name__ == '__main__':
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -43,12 +53,43 @@ if __name__ == '__main__':
 	print(f"Connection from {address} has been established!")
 
 	while True:
-		coor = [0, 0, 0]
+		print();
+		print("What you want to do?")
+		print("0. Send target")
+		print("1. Get current coordinate")
+		print("2. Set current coordinate (not yet implement)")
 
-		coor[0] = int(input("X: "))
-		coor[1] = int(input("y: "))
-		coor[2] = int(input("phi: "))
+		try:
+			a = int(input("I choose: "))
+		except Exception:
+			print("Error.")
+			a = -1;
+		
 
-		coorByte = coor2bytes(coor)
+		if (a == 0):
 
-		clientsocket.send(bytearray(coorByte))
+			coor = [0, 0, 0]
+			try:
+				coor[0] = int(input("X: "))
+				coor[1] = int(input("y: "))
+				coor[2] = int(input("phi: "))
+
+				coorByte = coor2bytes(coor)
+
+				clientsocket.send(bytes([0])) # tell the client we about to send top secret coordinate of the operation
+				clientsocket.send(bytearray(coorByte))
+			except Exception:
+					print("Error.")			
+
+		if (a == 1):
+			while True:
+				try:
+					clientsocket.send(bytes([1])) # tell the client we want their report about their position right now!
+					bytesReceived = clientsocket.recv(6)
+					receivedCoor = bytes2coor(bytesReceived)
+					print(receivedCoor)
+
+					time.sleep(1)
+
+				except KeyboardInterrupt:
+					break
