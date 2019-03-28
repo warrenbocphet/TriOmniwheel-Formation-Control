@@ -36,11 +36,12 @@ def coor2bytes(coor_fnc):
 def bytes2coor(byte_fnc):
 	receivedCoor_fnc = [0, 0, 0]
 
-	receivedCoor_fnc[0] = int((byte_fnc[0]>>7))*int((byte_fnc[1] | (((byte_fnc[0]<<1)>>1)<<8)))
-	receivedCoor_fnc[1] = int((byte_fnc[2]>>7))*int((byte_fnc[3] | (((byte_fnc[2]<<1)>>1)<<8)))
-	receivedCoor_fnc[2] = int((byte_fnc[4]>>7))*int((byte_fnc[5] | (((byte_fnc[4]<<1)>>1)<<8)))
+	receivedCoor_fnc[0] = ((-1)**(byte_fnc[0]>>7)) * ((byte_fnc[1]) | (((byte_fnc[0]&0x7f)<<8)))
+	receivedCoor_fnc[1] = ((-1)**(byte_fnc[2]>>7)) * ((byte_fnc[3]) | (((byte_fnc[2]&0x7f)<<8)))
+	receivedCoor_fnc[2] = ((-1)**(byte_fnc[4]>>7)) * ((byte_fnc[5]) | (((byte_fnc[4]&0x7f)<<8)))
 
 	return receivedCoor_fnc
+
 
 if __name__ == '__main__':
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -58,16 +59,13 @@ if __name__ == '__main__':
 		print("0. Send target")
 		print("1. Get current coordinate")
 		print("2. Set current coordinate (not yet implement)")
-
 		try:
 			a = int(input("I choose: "))
 		except Exception:
 			print("Error.")
 			a = -1;
-		
 
 		if (a == 0):
-
 			coor = [0, 0, 0]
 			try:
 				coor[0] = int(input("X: "))
@@ -76,20 +74,25 @@ if __name__ == '__main__':
 
 				coorByte = coor2bytes(coor)
 
-				clientsocket.send(bytes([0])) # tell the client we about to send top secret coordinate of the operation
-				clientsocket.send(bytearray(coorByte))
 			except Exception:
-					print("Error.")			
+					print("Error.")
 
-		if (a == 1):
-			while True:
-				try:
-					clientsocket.send(bytes([1])) # tell the client we want their report about their position right now!
-					bytesReceived = clientsocket.recv(6)
-					receivedCoor = bytes2coor(bytesReceived)
-					print(receivedCoor)
+			clientsocket.send(bytes([0]))
+			clientsocket.send(bytes(coorByte))
+			print("I already sent the target.")
 
-					time.sleep(1)
+		elif (a == 1):
+			clientsocket.send(bytes([1]))
+			bytesReceived = []
+			full_msg = []
 
-				except KeyboardInterrupt:
-					break
+			while (len(full_msg) < 8):
+				bytesReceived = clientsocket.recv(8)
+				for x in range(len(bytesReceived)):
+					full_msg.append(bytesReceived[x])
+			
+			receivedCoor = bytes2coor(full_msg)
+			print("coordinate received: " + str(receivedCoor))
+
+		else:
+			print("Not yet implement.")
