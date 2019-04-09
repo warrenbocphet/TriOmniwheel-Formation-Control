@@ -210,9 +210,7 @@ void loop() {
   
 	if (Serial.available() > 0)	{
 		a = Serial.read();
-//    SerialUSB.println("I got new command!");
 		if (a == 0)	{ // set target
-//      SerialUSB.println(" I got new target.");
 			j = 0;
 			while (j<6)	{
 				if (Serial.available())	{
@@ -224,10 +222,6 @@ void loop() {
 			targetX = twobytes1int(buf0[0], buf0[1]);
 			targetY = twobytes1int(buf0[2], buf0[3]);
 			targetPhi = twobytes1int(buf0[4], buf0[5]);
-//      SerialUSB.println(targetX);
-//      SerialUSB.println(targetY);
-//      SerialUSB.println(targetPhi);
-//      SerialUSB.println();
       targetPhi = (targetPhi/180.0)*PI;
       
 		} else if (a == 1)	{ // ask coordinate
@@ -263,7 +257,7 @@ void loop() {
     dphi = targetPhi - phi;
 
     // stopping condition
-    if (abs(dx) < 1 && abs(dy) < 1 && abs(dphi) < 0.035)
+    if (abs(dx) < 1 && abs(dy) < 1 && abs(dphi) < 0.087)
     {
       // stop
       analogWrite(enA, 0);
@@ -274,6 +268,12 @@ void loop() {
       v2 = 0;
     } else {
       // find dx, dy, dphi
+      if (abs(dx) < 10 && abs(dy) < 10) {
+        time_limit = 0.5;
+      } else {
+        time_limit = 1.0;
+      }
+      
       v_x = dx / time_limit;
       v_y = dy / time_limit;
       w = dphi / time_limit;
