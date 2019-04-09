@@ -65,7 +65,7 @@ const int int6 = A5;
 const int enC = 4;
 int pwm2;
 
-float rover_radius = 15.5; // in cm
+float rover_radius = 14.475; // in cm
 float wheel_radius = 5.22; // in cm
 
 int constant_linearVelocity = (2 * PI*wheel_radius);
@@ -160,6 +160,7 @@ float phi_t(float phi)
 ////////////////////////// setup and loop /////////////////////////
 void setup() {
 	Serial.begin(115200);
+//  SerialUSB.begin(115200);
 
 	pinMode(int1, OUTPUT);
   pinMode(int2, OUTPUT);
@@ -206,9 +207,12 @@ void loop() {
 	// Serial communication
 	elapsedTime0 = millis() - start0;
   elapsedTime2 = millis() - start2;
+  
 	if (Serial.available() > 0)	{
 		a = Serial.read();
+//    SerialUSB.println("I got new command!");
 		if (a == 0)	{ // set target
+//      SerialUSB.println(" I got new target.");
 			j = 0;
 			while (j<6)	{
 				if (Serial.available())	{
@@ -220,6 +224,10 @@ void loop() {
 			targetX = twobytes1int(buf0[0], buf0[1]);
 			targetY = twobytes1int(buf0[2], buf0[3]);
 			targetPhi = twobytes1int(buf0[4], buf0[5]);
+//      SerialUSB.println(targetX);
+//      SerialUSB.println(targetY);
+//      SerialUSB.println(targetPhi);
+//      SerialUSB.println();
       targetPhi = (targetPhi/180.0)*PI;
       
 		} else if (a == 1)	{ // ask coordinate
