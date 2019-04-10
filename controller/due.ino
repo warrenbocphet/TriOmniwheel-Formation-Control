@@ -97,7 +97,7 @@ struct motorPID_parameter motor1;
 struct motorPID_parameter motor2;
 
 //PID parameters
-double Kp = 5.5, Ki = 17.5, Kd = 0.0;
+double Kp = 5.5*2, Ki = 17.5*2, Kd = 0.0;
 
 ////create PID instance
 
@@ -267,11 +267,18 @@ void loop() {
       v1 = 0;
       v2 = 0;
     } else {
-      // find dx, dy, dphi
-      if (abs(dx) < 10 && abs(dy) < 10) {
-        time_limit = 0.5;
+
+      if (abs(dx) < 10.0 && abs(dy) < 10.0)  {
+        constant_linearVelocity = (2 * PI*wheel_radius)*0.5;
       } else {
-        time_limit = 1.0;
+        constant_linearVelocity = (2 * PI*wheel_radius);
+      }
+
+       time_limit = sqrt(dx*dx + dy*dy)/constant_linearVelocity;
+
+      if (time_limit == 0)
+      {
+       time_limit = 1;
       }
       
       v_x = dx / time_limit;
