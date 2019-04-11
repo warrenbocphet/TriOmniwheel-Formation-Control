@@ -160,7 +160,6 @@ float phi_t(float phi)
 ////////////////////////// setup and loop /////////////////////////
 void setup() {
   Serial.begin(115200);
-//  SerialUSB.begin(115200);
 
   pinMode(int1, OUTPUT);
   pinMode(int2, OUTPUT);
@@ -198,8 +197,6 @@ void setup() {
   
   start0 = millis();
   start1 = millis();
-
-  delay(500);
 }
 
 
@@ -225,9 +222,9 @@ void loop() {
       targetPhi = (targetPhi/180.0)*PI;
       
     } else if (a == 1)  { // ask coordinate
-      xSend.number = (int) x;
-      ySend.number = (int) y;
-      phiSend.number = (int) (phi/PI)*180; 
+      xSend.number = (int) (x);
+      ySend.number =  (int) (-y);
+      phiSend.number = (int) ((phi/PI)*180.0); 
 
       int2bytes(&xSend);
       int2bytes(&ySend);
@@ -266,6 +263,31 @@ void loop() {
       v0 = 0;
       v1 = 0;
       v2 = 0;
+
+      displacement0 = (enc0.read() - posPrevious0); //in encoder count
+      displacement1 = (enc1.read() - posPrevious1);
+      displacement2 = (enc2.read() - posPrevious2);
+
+      posPrevious0 = enc0.read(); //in encoder count
+      posPrevious1 = enc1.read();
+      posPrevious2 = enc2.read();
+
+      speed0 = (displacement0 / countPerRotation) * (2 * PI * wheel_radius) / (elapsedTime0 / 1000.0); // convert to cm/s
+      speed1 = (displacement1 / countPerRotation) * (2 * PI * wheel_radius) / (elapsedTime0 / 1000.0);
+      speed2 = (displacement2 / countPerRotation) * (2 * PI * wheel_radius) / (elapsedTime0 / 1000.0);
+
+      w = 1 / (3 * rover_radius) * (speed0 + speed1 + speed2);
+      v = (sqrt(3) / 3) * (speed2 - speed0);
+      v_n = 1 / 3.0 * (speed2 + speed0) - 2 / 3.0 * speed1;
+
+      v_x = v * cos(phi_t(phi)) - v_n * sin(phi_t(phi));
+      v_y = v * sin(phi_t(phi)) + v_n * cos(phi_t(phi));
+
+      // calculate x, y phi
+      x = x + v_x * elapsedTime0 / 1000.0;
+      y = y + v_y * elapsedTime0 / 1000.0;
+      phi = phi + w * elapsedTime0 / 1000.0;
+
     } else {
 
       if (abs(dx) < 10.0 && abs(dy) < 10.0)  {
