@@ -18,26 +18,26 @@ int twobytes1int(byte high, byte low)
 }
 
 struct byteInt  {
-  	int number;
-  	byte high;
-  	byte low;
+    int number;
+    byte high;
+    byte low;
 };
 
 struct byteInt xSend;
 struct byteInt ySend;
 struct byteInt phiSend;
 
-void int2bytes(struct byteInt* number_fnc)	{
-	int magnituteNumber;
-	if (number_fnc->number >= 0)	{
-		number_fnc->high = (number_fnc->number >> 8) & 0xFF;
-		number_fnc->low = (number_fnc->number & 0xFF);
-	} else {
-		magnituteNumber = number_fnc->number * -1;
-		number_fnc->high = (magnituteNumber >> 8) & 0xFF;
-		number_fnc->high = number_fnc->high ^ 0x80;
-		number_fnc->low = magnituteNumber & 0xFF;
-	}
+void int2bytes(struct byteInt* number_fnc)  {
+  int magnituteNumber;
+  if (number_fnc->number >= 0)  {
+    number_fnc->high = (number_fnc->number >> 8) & 0xFF;
+    number_fnc->low = (number_fnc->number & 0xFF);
+  } else {
+    magnituteNumber = number_fnc->number * -1;
+    number_fnc->high = (magnituteNumber >> 8) & 0xFF;
+    number_fnc->high = number_fnc->high ^ 0x80;
+    number_fnc->low = magnituteNumber & 0xFF;
+  }
 }
 
 // Random variable
@@ -86,7 +86,7 @@ float displacement2 = 0;
 float countPerRotation = 2797.0;
 
 /////////////////////////// PID ////////////////////////////
-struct motorPID_parameter	{
+struct motorPID_parameter {
   double Setpoint;
   double Input;
   double Output;
@@ -97,7 +97,7 @@ struct motorPID_parameter motor1;
 struct motorPID_parameter motor2;
 
 //PID parameters
-double Kp = 5.5*2, Ki = 17.5*2, Kd = 0.0;
+double Kp = 5.5, Ki = 17.5, Kd = 0.0;
 
 ////create PID instance
 
@@ -159,10 +159,10 @@ float phi_t(float phi)
 
 ////////////////////////// setup and loop /////////////////////////
 void setup() {
-	Serial.begin(115200);
+  Serial.begin(115200);
 //  SerialUSB.begin(115200);
 
-	pinMode(int1, OUTPUT);
+  pinMode(int1, OUTPUT);
   pinMode(int2, OUTPUT);
   pinMode(enA, OUTPUT);
 
@@ -204,51 +204,51 @@ void setup() {
 
 
 void loop() {
-	// Serial communication
-	elapsedTime0 = millis() - start0;
+  // Serial communication
+  elapsedTime0 = millis() - start0;
   elapsedTime2 = millis() - start2;
   
-	if (Serial.available() > 0)	{
-		a = Serial.read();
-		if (a == 0)	{ // set target
-			j = 0;
-			while (j<6)	{
-				if (Serial.available())	{
-					buf0[j] = Serial.read();
-					j++;					
-				}
-			}
+  if (Serial.available() > 0) {
+    a = Serial.read();
+    if (a == 0) { // set target
+      j = 0;
+      while (j<6) {
+        if (Serial.available()) {
+          buf0[j] = Serial.read();
+          j++;          
+        }
+      }
 
-			targetX = twobytes1int(buf0[0], buf0[1]);
-			targetY = twobytes1int(buf0[2], buf0[3]);
-			targetPhi = twobytes1int(buf0[4], buf0[5]);
+      targetX = twobytes1int(buf0[0], buf0[1]);
+      targetY = twobytes1int(buf0[2], buf0[3]);
+      targetPhi = twobytes1int(buf0[4], buf0[5]);
       targetPhi = (targetPhi/180.0)*PI;
       
-		} else if (a == 1)	{ // ask coordinate
-			xSend.number = (int) x;
-			ySend.number = (int) y;
-			phiSend.number = (int) (phi/PI)*180; 
+    } else if (a == 1)  { // ask coordinate
+      xSend.number = (int) x;
+      ySend.number = (int) y;
+      phiSend.number = (int) (phi/PI)*180; 
 
-			int2bytes(&xSend);
-			int2bytes(&ySend);
-			int2bytes(&phiSend);
+      int2bytes(&xSend);
+      int2bytes(&ySend);
+      int2bytes(&phiSend);
 
-			buf1[0] = xSend.high;
-			buf1[1] = xSend.low;
-			buf1[2] = ySend.high;
-			buf1[3] = ySend.low;
-			buf1[4] = phiSend.high;
-			buf1[5] = phiSend.low;
-			for (i = 0; i<6; i++)	{
-				Serial.write(buf1[i]);
-			}
-		} else {
+      buf1[0] = xSend.high;
+      buf1[1] = xSend.low;
+      buf1[2] = ySend.high;
+      buf1[3] = ySend.low;
+      buf1[4] = phiSend.high;
+      buf1[5] = phiSend.low;
+      for (i = 0; i<6; i++) {
+        Serial.write(buf1[i]);
+      }
+    } else {
 
-		}
+    }
 
-	}
+  }
 
-	/////////////////////////// Controller /////////////////////////
+  /////////////////////////// Controller /////////////////////////
   if (elapsedTime0 > time_frame0) // calculate required speed
   {
     start0 = millis();
