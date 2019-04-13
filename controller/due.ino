@@ -46,6 +46,7 @@ int a;
 byte trash;
 byte buf0[7];
 byte buf1[7];
+byte buf2[7];
 
 float targetX = 0.0, targetY = 0.0, targetPhi = 0.0;
 
@@ -197,6 +198,11 @@ void setup() {
   
   start0 = millis();
   start1 = millis();
+
+  while (Serial.available())  {
+    int trash;
+    trash = Serial.read();
+  }
 }
 
 
@@ -239,8 +245,23 @@ void loop() {
       for (i = 0; i<6; i++) {
         Serial.write(buf1[i]);
       }
-    } else {
+    } else if (a == 2) { // set the current coordinate to something else
+    	k = 0;
+      while (k<6) {
+        if (Serial.available()) {
+          buf2[k] = Serial.read();
+          k++;          
+        }
+      }
 
+      x = twobytes1int(buf2[0], buf2[1]);
+      y = twobytes1int(buf2[2], buf2[3]);
+      phi = twobytes1int(buf2[4], buf2[5]);
+      phi = (phi/180.0)*PI;
+
+      targetX = x;
+      targetY = y;
+      targetPhi = phi;
     }
 
   }
