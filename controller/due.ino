@@ -41,12 +41,13 @@ void int2bytes(struct byteInt* number_fnc)  {
 }
 
 // Random variable
-int i = 0, j = 0, k = 0;
+int i = 0, j = 0, k = 0, m = 0;
 int a;
 byte trash;
 byte buf0[7];
 byte buf1[7];
 byte buf2[7];
+byte buf3[7];
 
 float targetX = 0.0, targetY = 0.0, targetPhi = 0.0;
 
@@ -245,7 +246,7 @@ void loop() {
       for (i = 0; i<6; i++) {
         Serial.write(buf1[i]);
       }
-    } else if (a == 2) { // set the current coordinate to something else
+    } else if (a == 2) { // set new starting point.
     	k = 0;
       while (k<6) {
         if (Serial.available()) {
@@ -256,12 +257,25 @@ void loop() {
 
       x = twobytes1int(buf2[0], buf2[1]);
       y = twobytes1int(buf2[2], buf2[3]);
-      phi = twobytes1int(buf2[4], buf2[5]);
-      phi = (phi/180.0)*PI;
+      phi = twobytes1int(buf2[4], buf2[5]); // in degree/s
+      phi = (phi/180.0)*PI; // in rad/s
 
       targetX = x;
       targetY = y;
       targetPhi = phi;
+    } else if (a == 3)  { // set new current coordinate
+      m = 0;
+      while (m<6) {
+        if (Serial.available()) {
+          buf3[m] = Serial.read();
+          m++;          
+        }
+      }
+
+      x = twobytes1int(buf3[0], buf3[1]);
+      y = twobytes1int(buf3[2], buf3[3]);
+      phi = twobytes1int(buf3[4], buf3[5]);
+      phi = (phi/180.0)*PI;
     }
 
   }
