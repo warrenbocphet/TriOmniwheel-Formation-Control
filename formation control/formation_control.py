@@ -206,9 +206,13 @@ if __name__ == '__main__':
 					full_msg = []
 
 					while (len(full_msg) < 8):
-						bytesReceived = roverPlatform[i].socket.recv(8)
-						for j in range(len(bytesReceived)):
-							full_msg.append(bytesReceived[j])
+						try:
+							bytesReceived = roverPlatform[i].socket.recv(8)
+							for j in range(len(bytesReceived)):
+								full_msg.append(bytesReceived[j])
+
+						except socket.timeout:
+							print("Time out. Will try again.")
 					
 					receivedCoor = bytes2coor(full_msg)
 					roverPlatform[i].currentCoor = receivedCoor
@@ -216,6 +220,7 @@ if __name__ == '__main__':
 					print(f"Current coordinate of rover ID {roverPlatform[i].id}: {roverPlatform[i].currentCoor}")
 					if ((abs(roverPlatform[i].currentTarget[0] - roverPlatform[i].currentCoor[0]) <= 2) and (abs(roverPlatform[i].currentTarget[1] - roverPlatform[i].currentCoor[1]) <= 2) and (abs(roverPlatform[i].currentTarget[2] - roverPlatform[i].currentCoor[2]) <= 6)):
 						# send the next target
+						roverPlatform[i].targetList[n][2] = roverPlatform[i].currentCoor[2]
 						roverPlatform[i].currentTarget = roverPlatform[i].targetList[n]
 						targetSend = copy.deepcopy(roverPlatform[i].currentTarget)
 						targetSend[1] = -targetSend[1]
