@@ -4,12 +4,12 @@ from cv2 import aruco
 import copy
 
 # constant
-flip_constant = 1
+flip_constant = -1
 
 # function
 def flip_coor(point):
 	# print(point[0])
-	return 640 - point[0], point[1]
+	return 640 - point[0], 480 - point[1]
 
 # class
 class arucoMarker:
@@ -31,7 +31,7 @@ class arucoMarker:
 	def compute_midPoint(self):
 		self.middle_point = [int((self.corner0[0] + self.corner2[0])/2), int((self.corner0[1] + self.corner2[1])/2)]
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 # See if I can identify all 9 aruco marker
 source_point = np.zeros((9,2))
@@ -49,12 +49,16 @@ while True:
 		captureAruco = copy.deepcopy(frame)
 		break
 
+	frame_markers = cv2.flip(frame_markers, flip_constant)
 	cv2.imshow("Current frame", frame_markers)
+
 	key = cv2.waitKey(1) & 0xFF
 	if key == ord('q'):
 		break
 
 cv2.destroyAllWindows()
+
+print("I found all markers.")
 
 # find the coordinate of those markers so I can compute the homography matrix
 gray = cv2.cvtColor(captureAruco, cv2.COLOR_BGR2GRAY)
@@ -62,6 +66,7 @@ aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 parameters = aruco.DetectorParameters_create()
 corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
 
+captureAruco = cv2.flip(captureAruco, flip_constant)
 while True:
 	cv2.imshow("Detection", captureAruco)
 
@@ -78,8 +83,9 @@ while True:
 			aruco_marker.compute_midPoint()
 
 			source_point[aruco_marker.id] = aruco_marker.middle_point
-			source_point[aruco_marker.id] = flip_coor(source_point[aruco_marker.id][0])
-			cv2.putText(captureAruco, "id: " + str(aruco_marker.id), (aruco_marker.middle_point[0], aruco_marker.middle_point[1]), cv2.FONT_HERSHEY_DUPLEX, 0.5, (0,0,255))
+			# source_point[aruco_marker.id] = flip_coor(source_point[aruco_marker.id][0])
+			where_to_put_text = flip_coor(source_point[aruco_marker.id][0])
+			cv2.putText(captureAruco, "id: " + str(aruco_marker.id), (int(where_to_put_text[0]), int(where_to_put_text[1])), cv2.FONT_HERSHEY_DUPLEX, 0.5, (0,0,255))
 
 ############################################ Calculate homography matrix #########################################
 print("Calculating homography matrix")
@@ -112,7 +118,7 @@ while(True):
 		cv2.putText(frame, str("Coordinate: ") + str(round(middle_point[0],2)) + ", " + str(round(middle_point[1],2)), (int(aruco_marker[0]), int(aruco_marker[1]) + 10), cv2.FONT_HERSHEY_DUPLEX, 0.5, (0,0,255))
 	else:
 		frame = cv2.flip(frame, flip_constant)
-		print("Fail to detect.")
+		# print("Fail to detect.")
 
 	cv2.imshow("Path", frame)
 
