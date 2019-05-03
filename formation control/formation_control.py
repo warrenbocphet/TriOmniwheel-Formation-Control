@@ -116,7 +116,7 @@ if __name__ == '__main__':
 
 
 	# read input text file from matlab and set target list
-	input_file = open("Mymatrix.txt","r")
+	input_file = open("testMatrix.txt","r")
 	input_matrix = [] 
 	while True:
 		input_line = input_file.readline()
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 		for j in range(number_of_rover): # iterate through all the rover platform
 			for k in range(id_max): # iterate through all the possible ID.
 				if (roverPlatform[j].id == k): # the target of a rover will be located at column id (x) and column id+1 (y)
-					roverPlatform[j].setTargetList([int(float(input_matrix[i][k])*scaling_factor), int(float(input_matrix[i][k+1])*scaling_factor), 0])
+					roverPlatform[j].setTargetList([int(float(input_matrix[i][k*2])*scaling_factor), int(float(input_matrix[i][k*2+1])*scaling_factor), 0])
 
 	# print out the target list for each rover (to debug)
 	# for i in range(number_of_rover):
@@ -188,7 +188,7 @@ if __name__ == '__main__':
 		coorByte = coor2bytes(targetSend)
 		roverPlatform[i].socket.send(bytes([0]))
 		roverPlatform[i].socket.send(bytes(coorByte))
-		print(f"I sent the first target: {roverPlatform[i].currentTarget}")
+		print(f"I sent the first target: {roverPlatform[i].currentTarget} to rover with id: {roverPlatform[i].id}")
 
 	# Send the rest of target point	
 	for n in range(1,len(input_matrix)): # send target from target[1] to final target
@@ -212,12 +212,12 @@ if __name__ == '__main__':
 								full_msg.append(bytesReceived[j])
 
 						except socket.timeout:
-							print("Time out. Will try again.")
+							# print("Asking coordinate but timed out. Will try again.")
 					
 					receivedCoor = bytes2coor(full_msg)
 					roverPlatform[i].currentCoor = receivedCoor
 
-					print(f"Current coordinate of rover ID {roverPlatform[i].id}: {roverPlatform[i].currentCoor}")
+					# print(f"Current coordinate of rover ID {roverPlatform[i].id}: {roverPlatform[i].currentCoor}")
 					if ((abs(roverPlatform[i].currentTarget[0] - roverPlatform[i].currentCoor[0]) <= 2) and (abs(roverPlatform[i].currentTarget[1] - roverPlatform[i].currentCoor[1]) <= 2) and (abs(roverPlatform[i].currentTarget[2] - roverPlatform[i].currentCoor[2]) <= 6)):
 						# send the next target
 						roverPlatform[i].targetList[n][2] = roverPlatform[i].currentCoor[2]
@@ -229,9 +229,9 @@ if __name__ == '__main__':
 						roverPlatform[i].socket.send(bytes(coorByte))
 						arrival = arrival + 1
 
-						print(f"I sent the next target: {roverPlatform[i].currentTarget}")
+						print(f"I sent the next target: {roverPlatform[i].currentTarget} to rover with id: {roverPlatform[i].id}")
 
-					print()
+					# print()
 
 
 	print("Formation has been formed.")
