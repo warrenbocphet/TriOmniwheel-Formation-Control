@@ -83,17 +83,17 @@ if __name__ == '__main__':
 
 	########################################### Setting up communication ########################################
 	number_of_rover = int(input("Number of rover: "))
-	# id_max = int(input("Maximum number of identification: "))
-	# scaling_factor = int(input("Scaling factor for target: "))
+
 	id_max = 10
 	scaling_factor = 1
+	rate_of_checking = 0.1
 
 	# setup server
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.bind((socket.gethostname(), 1234)) # bind(ip, port)
 	print("Done binding, now listening for connection.")
 	print()
-	s.listen(0)
+	s.listen(5)
 
 	roverPlatform = []
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 		# Listen to the client's connection
 		clientSocket, address = s.accept()
 		print(f"Connection number {i} from {address} has been established!")
-		clientSocket.settimeout(0.5)
+		clientSocket.settimeout(1)
 
 		roverPlatform.append(rover(clientSocket))
 
@@ -122,8 +122,8 @@ if __name__ == '__main__':
 				pass
 
 	########################################### Read input text file ###########################################
-	input_file = open("testMatrix3.txt","r")
-	
+	input_file = open("square.txt","r")
+	output_file = open("liveCoordinate.txt", "w")
 
 	input_matrix = [] 
 	while True:
@@ -206,10 +206,9 @@ if __name__ == '__main__':
 		while (arrival < number_of_rover): # loop continue until all rover arrive at final destination
 			# check position in order to send the next target.
 			elapsedTime = time.time() - start
-			if (elapsedTime > 0.5): # check if arrive every 100ms
+			if (elapsedTime > rate_of_checking): # check if arrive every 100ms
 				start = time.time()
-				output_file = open("liveCoordinate.txt", "w")
-				
+								
 				for i in range(number_of_rover): # do same stuffs with each of the rover
 					# ask for current coordinate
 					roverPlatform[i].socket.send(bytes([1]))
@@ -223,9 +222,14 @@ if __name__ == '__main__':
 								full_msg.append(bytesReceived[j])
 
 						except socket.timeout:
+							print(f"Socket timed out on rover {roverPlatform[i].id}.")
 							pass
 
 					receivedCoor = bytes2coor(full_msg)
+
+					if (receivedCoor[0] == 9999):
+						print(f"I received {receivedCoor}.")
+
 					roverPlatform[i].currentCoor = receivedCoor
 
 					if ((abs(roverPlatform[i].currentTarget[0] - roverPlatform[i].currentCoor[0]) <= 2) and (abs(roverPlatform[i].currentTarget[1] - roverPlatform[i].currentCoor[1]) <= 2) and (roverPlatform[i].arrived == 0)):
@@ -239,7 +243,7 @@ if __name__ == '__main__':
 						output_file.write(f"{roverPlatform[i].currentCoor[0]},{roverPlatform[i].currentCoor[1]}")
 				
 				output_file.write("\n")
-				output_file.close()
+				
 
 		# After all arrived, send the next batch of coordinate.
 		for i in range(number_of_rover):
@@ -252,6 +256,7 @@ if __name__ == '__main__':
 			print(f"I sent the next target: {roverPlatform[i].currentTarget} to rover with id: {roverPlatform[i].id}")
 
 
+	output_file.close()
 	print("Formation has been formed.")
 
 	
