@@ -67,10 +67,11 @@ const int int6 = A5;
 const int enC = 4;
 int pwm2;
 
-float rover_radius = 14.475; // in cm
+float rover_radius = 13.7; // in cm
 float wheel_radius = 5.22; // in cm
 
-int constant_linearVelocity = (2 * PI*wheel_radius);
+float constant_linearVelocity = (2*PI*wheel_radius);
+float max_wheel_speed = (2*PI*wheel_radius)*2; // half rotation per second.
 
 ///////////////////////////// Encoder /////////////////////////////
 Encoder enc0(8, 9);
@@ -224,7 +225,7 @@ void loop() {
       }
 
       targetX = twobytes1int(buf0[0], buf0[1]);
-      targetY = twobytes1int(buf0[2], buf0[3]);
+      targetY = -twobytes1int(buf0[2], buf0[3]);
       targetPhi = twobytes1int(buf0[4], buf0[5]);
       targetPhi = (targetPhi/180.0)*PI;
       
@@ -256,7 +257,7 @@ void loop() {
       }
 
       x = twobytes1int(buf2[0], buf2[1]);
-      y = twobytes1int(buf2[2], buf2[3]);
+      y = -twobytes1int(buf2[2], buf2[3]);
       phi = twobytes1int(buf2[4], buf2[5]); // in degree/s
       phi = (phi/180.0)*PI; // in rad/s
 
@@ -273,7 +274,7 @@ void loop() {
       }
 
       x = twobytes1int(buf3[0], buf3[1]);
-      y = twobytes1int(buf3[2], buf3[3]);
+      y = -twobytes1int(buf3[2], buf3[3]);
       phi = twobytes1int(buf3[4], buf3[5]);
       phi = (phi/180.0)*PI;
     }
@@ -289,7 +290,7 @@ void loop() {
     dphi = targetPhi - phi;
 
     // stopping condition
-    if (abs(dx) < 1 && abs(dy) < 1 && abs(dphi) < 0.087)
+    if (abs(dx) < 1 && abs(dy) < 1 && abs(dphi) < 0.175)
     {
       // stop
       analogWrite(enA, 0);
@@ -342,6 +343,10 @@ void loop() {
       v_y = dy / time_limit;
       w = dphi / time_limit;
 
+      if (abs(dx) < 2.0 && abs(dy) < 2.0 && abs(w) > (PI/2.0)) {
+        w = PI/2.0*(w/abs(w));
+      }
+
       /////////// Calculate require speed of 3 wheels //////////////
 
       // find v, v_n
@@ -352,6 +357,25 @@ void loop() {
       v0 = -v * sin(PI / 3) + v_n * cos(PI / 3) + w * rover_radius;
       v1 =              - v_n           + w * rover_radius;
       v2 =  v * sin(PI / 3) + v_n * cos(PI / 3) + w * rover_radius;
+
+      // Speed limiting
+      if (abs(v0) > max_wheel_speed || abs(v1) > max_wheel_speed || abs(v2) > max_wheel_speed) {
+        // Find the highest speed
+        float highest_speed = abs(v0);
+        if (abs(highest_speed) < abs(v1)) {
+          highest_speed = abs(v1);
+        }
+
+        if (abs(highest_speed) < abs(v2)) {
+          highest_speed = abs(v2);
+        }
+
+        // Limit the speed to highest_speed
+        v0 = v0/highest_speed*max_wheel_speed;
+        v1 = v1/highest_speed*max_wheel_speed;
+        v2 = v2/highest_speed*max_wheel_speed;
+
+      }
 
       // PID control
       motor0.Setpoint = v0; // in cm/s
