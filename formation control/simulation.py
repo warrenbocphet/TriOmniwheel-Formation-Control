@@ -9,12 +9,13 @@ iteration = 0
 x_boundary = 282
 y_boundary = 282
 color = ['r', 'b', 'g', 'y', 'c', 'b']
+# color = ['black', 'dimgray', 'dimgrey', 'gray', 'grey', 'darkgray','darkgrey']
 
 def animate(i):
 	global iteration
 
 	# read input text file from matlab and set target list
-	input_file = open("old_liveCoordinate.txt","r")
+	input_file = open("liveCoordinate.txt","r")
 	input_matrix = [] 
 	while True:
 		input_line = input_file.readline()
@@ -43,6 +44,7 @@ def animate(i):
 		graph_data = input_matrix[iteration]
 		for j in range(0,len(input_matrix[0]),2):	
 			# Draw the agent
+			# ax.add_patch(plt.Circle((input_matrix[iteration][j], input_matrix[iteration][j+1]), radius=15, fc='r', fill = 0, color = [0,0,0]))
 			ax.add_patch(plt.Circle((input_matrix[iteration][j], input_matrix[iteration][j+1]), radius=15, fc='r', fill = 0, color = color[int(j/2)]))
 			ax.add_patch(plt.Circle((input_matrix[iteration][j], input_matrix[iteration][j+1]), radius=2, fc='b', fill = 1, color = color[int(j/2)]))
 
@@ -51,5 +53,5 @@ def animate(i):
 		iteration = iteration + 1
 
 
-ani = animation.FuncAnimation(fig, animate, interval=50)
+ani = animation.FuncAnimation(fig, animate, interval=41)
 plt.show()
