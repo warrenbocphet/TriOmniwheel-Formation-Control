@@ -11,4 +11,4 @@ Encoder: 64 resolution => 2797 count per rotation.
 
 Control board: Arduino Due for controlling, Arduino MKR1000 for WiFi communication.
 
-[Imgur](https://i.imgur.com/8nDaBDt.gif)
+![Alt Text](https://i.imgur.com/8nDaBDt.gif)
