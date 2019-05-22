@@ -18,3 +18,7 @@ Real data feedback and put into simulation
 
 Real demo. Noticed how the position of the rovers and the feedback position is not entirely the same. Overtime, the system introduce more and more error. Since the system is self guidance, there's no correction during performance.
 ![Alt Text](https://i.imgur.com/Ef7aGyV.gif)
+
+### Formation control without collision avoicedance
+Generate path to form a triangle formation. Connected circle represent rover with radius, dash circle represent the safety distance (collision avoicedance is not implement in the GIF below).
+![Alt Text](https://i.imgur.com/ODTWwnD.gifv)
