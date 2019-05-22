@@ -21,4 +21,4 @@ Real demo. Noticed how the position of the rovers and the feedback position is n
 
 ### Formation control without collision avoicedance
 Generate path to form a triangle formation. Connected circle represent rover with radius, dash circle represent the safety distance (collision avoicedance is not implement in the GIF below).
-![Alt Text](https://i.imgur.com/ODTWwnD.gifv)
+![Alt Text](https://i.imgur.com/ODTWwnD.gif)
