@@ -22,3 +22,11 @@ Real demo. Noticed how the position of the rovers and the feedback position is n
 ### Formation control without collision avoicedance
 Generate path to form a triangle formation. Connected circle represent rover with radius, dash circle represent the safety distance (collision avoicedance is not implement in the GIF below).
 ![Alt Text](https://i.imgur.com/ODTWwnD.gif)
+
+The same triangle formation with different starting position. Noticed how the formation is rotated with these starting positions. The algorithm [1] does not try to get to a specific coordinate but rather a formation (i.e, a triangle, circle or any arbitrary topology).
+![Alt Text](https://i.imgur.com/WZkjorT.gif)
+
+
+## Reference
+[1] Fathian, Kaveh & Safaoui, Sleiman & Summers, Tyler & Gans, Nicholas. (2018). Robust Distributed Planar Formation Control for Higher-Order Holonomic and Nonholonomic Agents. Link: https://www.researchgate.net/publication/326696917_Robust_Distributed_Planar_Formation_Control_for_Higher-Order_Holonomic_and_Nonholonomic_Agents
+The author's website: https://sites.google.com/view/kavehfathian/home?authuser=0
