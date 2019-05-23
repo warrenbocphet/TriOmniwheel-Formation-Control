@@ -1,12 +1,40 @@
 import numpy as np
 from numpy import matrix
 from numpy.linalg import svd
-from math import pi
+from numpy.linalg import norm as norm_np
+from math import pi, atan
 import cvxpy as cp
 from cvxpy.atoms.lambda_min import lambda_min
 from cvxpy.atoms.norm import norm
 from copy import deepcopy
 from simulation import showGraph
+
+def unit_vector(vector):
+    return vector / np.linalg.norm_np(vector)
+
+def angle_between(v1, v2):
+
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+def find_dij_star(destination_fnc, n_agent):
+    dij_star_fnc = np.zeros((n_agent, n_agent))
+    for i in range(n_agent): # Go through all the agents
+        for j in range(n_agent): # Go through all the neighbors
+            agent = np.array([destination_fnc[i*2], destination_fnc[i*2+1]])
+            neighbor = np.array([destination_fnc[j*2], destination_fnc[j*2+1]])
+            dij_star_fnc[i][j] = norm_np(np.array([destination_fnc[i*2], destination_fnc[i*2+1]]) - np.array([destination_fnc[j*2], destination_fnc[j*2+1]]))
+
+    return dij_star_fnc
+
+def scale_adjustment_fnc(qi, qj, dij_star):
+	k = 10
+	dij = norm_np(qj-qi)
+	# print(f"dij - dij_star: {dij - dij_star}.")
+	push_pull_fnc = 1/k*atan(dij - dij_star)
+
+	return push_pull_fnc*(qj - qi)
 
 def rotate_coordinate(xy, radians):
 	"""Use numpy to build a rotation matrix and take the dot product."""
@@ -29,7 +57,8 @@ print(f"Shape of initial_position: {initial_position.shape}.")
 
 # destination = np.array([-50, 0, 0, 50, 50, 0])
 # destination = np.array([-1, 1, 0, 0, 1, 1])
-destination = np.array([-1, 0, 0, 0, 1, 0, -0.5, 0.5, 0, 1, 0.5, 0.5])
+destination = np.array([-1, 0, 0, 0, 1, 0, -0.5, 0.5, 0, 1, 0.5, 0.5])*100
+# destination = np.array([-1, 0, 0, -1, 1, 0, -1, 1, 0, 1, 1, 1])*100
 
 print(f"destination: {destination}.")
 destination_bar = np.zeros(len(destination))
@@ -41,6 +70,8 @@ for i in range(0,len(destination),2):
 	destination_bar[i+1] = destination_bar[i+1]
 
 number_of_agent = int(len(destination)/2)
+
+dij_star = find_dij_star(destination, number_of_agent)
 
 print(f"\n\ndestination: {destination}.")
 print(f"rotated destination: {destination_bar}.")	
@@ -127,16 +158,19 @@ for i in range(number_of_agent):
 	else:
 		output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])}")
 output_file.write("\n")	
-for iteration in range(100): # iterate for 5 times
-	print(f"Iteration number: {iteration}.")
+for iteration in range(2000): # iterate for 5 times
+	# print(f"Iteration number: {iteration}.")
 	for i in range(number_of_agent): # calculate new position of all agents
 		u[i] = np.zeros((2,1))
-		for j in range(number_of_agent): # calculate control vector of 1 agent
-			u[i] = u[i] + gain_A[i][j]*current_position[j].transpose()
+		
+		# calculate control vector of 1 agent
+		for j in range(number_of_agent): 
+			u[i] = u[i] + gain_A[i][j]*current_position[j].transpose() + scale_adjustment_fnc(current_position[i].transpose(), current_position[j].transpose(), dij_star[i][j])
+		# u[i] = u[i] + 
 
 		current_position[i] = current_position[i] + u[i].transpose()*time_interval
 		# print(f"control vector of agent {i}: {u[i].transpose()}")
-		print(f"current_position of agent {i}: {current_position[i]}\n")
+		# print(f"current_position of agent {i}: {current_position[i]}\n")
 
 		if (i < (number_of_agent-1)):
 			output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])},")
@@ -147,7 +181,7 @@ for iteration in range(100): # iterate for 5 times
 	if u.any() == 0:
 		print("Formation is formed.")
 		break	
-	print("\n")
+	# print("\n")
 
 
 output_file.close()
