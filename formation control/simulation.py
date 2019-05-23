@@ -26,7 +26,7 @@ def animate(i):
 
 	for i in range(len(input_matrix)):
 		for j in range(len(input_matrix[0])):
-			input_matrix[i][j] = float(input_matrix[i][j])
+			input_matrix[i][j] = int(float(input_matrix[i][j]))
 
 	# plot data
 	if (len(input_matrix) > iteration):
@@ -45,13 +45,22 @@ def animate(i):
 		for j in range(0,len(input_matrix[0]),2):	
 			# Draw the agent
 			# ax.add_patch(plt.Circle((input_matrix[iteration][j], input_matrix[iteration][j+1]), radius=15, fc='r', fill = 0, color = [0,0,0]))
+			
 			ax.add_patch(plt.Circle((input_matrix[iteration][j], input_matrix[iteration][j+1]), radius=15, fc='r', fill = 0, color = color[int(j/2)]))
+			ax.add_patch(plt.Circle((input_matrix[iteration][j], input_matrix[iteration][j+1]), radius=30, fc='r', fill = 0, color = color[int(j/2)], linestyle = 'dashed'))
 			ax.add_patch(plt.Circle((input_matrix[iteration][j], input_matrix[iteration][j+1]), radius=2, fc='b', fill = 1, color = color[int(j/2)]))
 
 		plt.axis('scaled')
 
 		iteration = iteration + 1
 
+def showGraph():
+	ani = animation.FuncAnimation(fig, animate, interval=100)
+	plt.show()
 
-ani = animation.FuncAnimation(fig, animate, interval=41)
-plt.show()
+
+if __name__ == '__main__':
+	ani = animation.FuncAnimation(fig, animate, interval=100)
+	ani.save("simulation.mp4")
+	plt.show()
+
