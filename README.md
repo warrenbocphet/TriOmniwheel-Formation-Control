@@ -30,4 +30,5 @@ The same triangle formation with different starting position. Noticed how the fo
 
 ## Reference
 [1] Fathian, Kaveh & Safaoui, Sleiman & Summers, Tyler & Gans, Nicholas. (2018). Robust Distributed Planar Formation Control for Higher-Order Holonomic and Nonholonomic Agents. Link: https://www.researchgate.net/publication/326696917_Robust_Distributed_Planar_Formation_Control_for_Higher-Order_Holonomic_and_Nonholonomic_Agents
+
 The author's website: https://sites.google.com/view/kavehfathian/home?authuser=0
