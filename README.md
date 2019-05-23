@@ -24,6 +24,7 @@ Generate path to form a triangle formation. Connected circle represent rover wit
 ![Alt Text](https://i.imgur.com/ODTWwnD.gif)
 
 The same triangle formation with different starting position. Noticed how the formation is rotated with these starting positions. The algorithm [1] does not try to get to a specific coordinate but rather a formation (i.e, a triangle, circle or any arbitrary topology).
+
 ![Alt Text](https://i.imgur.com/WZkjorT.gif)
 
 
