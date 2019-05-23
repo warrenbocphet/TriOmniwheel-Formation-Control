@@ -6,6 +6,7 @@ import cvxpy as cp
 from cvxpy.atoms.lambda_min import lambda_min
 from cvxpy.atoms.norm import norm
 from copy import deepcopy
+from simulation import showGraph
 
 def rotate_coordinate(xy, radians):
 	"""Use numpy to build a rotation matrix and take the dot product."""
@@ -19,14 +20,18 @@ def rotate_coordinate(xy, radians):
 
 
 ############################### Find gain A #################################
-initial_position = np.matrix([[-50, -50], [0, -50], [50, -50]])
+# initial_position = np.matrix([[-50, -50], [0, -50], [50, -50]])
+initial_position = np.matrix([[0, -100], [100, -100], [100, 0], [-100, 0], [-100, 100], [0, 100]])
 # adj = np.matrix([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
 
 print(f"Initial position: {initial_position}.")
 print(f"Shape of initial_position: {initial_position.shape}.")
 
-destination = np.array([-50, 0, 0, 50, 50, 0])
-# destination = np.array([0, 0, 4, 0, 4, 3])
+# destination = np.array([-50, 0, 0, 50, 50, 0])
+# destination = np.array([-1, 1, 0, 0, 1, 1])
+destination = np.array([-1, 0, 0, 0, 1, 0, -0.5, 0.5, 0, 1, 0.5, 0.5])
+
+print(f"destination: {destination}.")
 destination_bar = np.zeros(len(destination))
 for i in range(0,len(destination),2):
 	destination_bar[i], destination_bar[i+1] = rotate_coordinate((destination[i], destination[i+1]), pi/2)
@@ -107,12 +112,22 @@ print(f"Shape of gain A: {gain_A.shape}")
 ########################### Simulation ############################
 time_interval = 0.01 # 1 second
 current_position = deepcopy(initial_position)
+print(f"\nShape of current_position[0]: {current_position[0].shape}\n")
+
+output_file = open("liveCoordinate.txt", "w")
 
 # control vector
 u = np.zeros((number_of_agent,2,1))
 print(f"u: {u}.\n\n")
 
-for iteration in range(50): # iterate for 5 times
+for i in range(number_of_agent):
+	if (i < (number_of_agent-1)):
+		output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])},")
+		# print(f"type: {type}")
+	else:
+		output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])}")
+output_file.write("\n")	
+for iteration in range(100): # iterate for 5 times
 	print(f"Iteration number: {iteration}.")
 	for i in range(number_of_agent): # calculate new position of all agents
 		u[i] = np.zeros((2,1))
@@ -123,5 +138,18 @@ for iteration in range(50): # iterate for 5 times
 		# print(f"control vector of agent {i}: {u[i].transpose()}")
 		print(f"current_position of agent {i}: {current_position[i]}\n")
 
+		if (i < (number_of_agent-1)):
+			output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])},")
+		else:
+			output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])}")
+	
+	output_file.write("\n")	
+	if u.any() == 0:
+		print("Formation is formed.")
+		break	
 	print("\n")
 
+
+output_file.close()
+
+showGraph()
