@@ -8,6 +8,7 @@ from cvxpy.atoms.lambda_min import lambda_min
 from cvxpy.atoms.norm import norm
 from copy import deepcopy
 from simulation import showGraph
+from test_collision_avoicedance2 import dynamic_collision_avoicedance
 
 def unit_vector(vector):
     return vector / np.linalg.norm_np(vector)
@@ -48,17 +49,22 @@ def rotate_coordinate(xy, radians):
 
 
 ############################### Find gain A #################################
-# initial_position = np.matrix([[-50, -50], [0, -50], [50, -50]])
-initial_position = np.matrix([[0, -100], [100, -100], [100, 0], [-100, 0], [-100, 100], [0, 100]])
-# adj = np.matrix([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
+
+# Triangle
+# initial_position = np.matrix([[0, -94], [94, -94], [94, 0], [0, 94], [-94, 94], [-94, 0]])
+# destination = np.array([-1, 0, 0, 0, 1, 0, 0.5, 0.5, 0, 1, -0.5, 0.5])*100
+
+# Hexagon
+# initial_position = np.matrix([[0, -47], [94, -47], [94, 47], [0, 47], [-94, 47], [-94, -47]])
+# destination = np.array([-0.5, -1, 0.5, -1, 1, 0, 0.5, 1, -0.5, 1, -1, 0])*100
+
+# T - shape (Twice fan)
+initial_position = np.matrix([[94, -94], [0, -94], [-94, -94], [-94, 94], [0, 94], [94, 94]])
+destination = np.array([0.5, 1, 0, 0, -0.5, 1, -1, 1, 0, 0.5, 1, 1])*100
+
 
 print(f"Initial position: {initial_position}.")
 print(f"Shape of initial_position: {initial_position.shape}.")
-
-# destination = np.array([-50, 0, 0, 50, 50, 0])
-# destination = np.array([-1, 1, 0, 0, 1, 1])
-destination = np.array([-1, 0, 0, 0, 1, 0, -0.5, 0.5, 0, 1, 0.5, 0.5])*100
-# destination = np.array([-1, 0, 0, -1, 1, 0, -1, 1, 0, 1, 1, 1])*100
 
 print(f"destination: {destination}.")
 destination_bar = np.zeros(len(destination))
@@ -127,11 +133,6 @@ gain_Ai = np.zeros((number_of_agent,number_of_agent,2,2)) # I try putting everyt
 
 for i in range(0,gain_A.shape[0],2): # go through all agents
 	for j in range(0,gain_A.shape[1],2): # go through all neighbor
-		# if (i != j):
-		#     gain_Aij = np.matrix([[gain_A[i][j], gain_A[i][j+1]],[gain_A[i+1][j], gain_A[i+1][j+1]]])
-		#     gain_Ai[int(i/2),int(j/2)] = gain_Aij
-		# else:
-		#     gain_Ai[int(i/2),int(j/2)] = np.zeros((2,2))
 		gain_Aij = np.matrix([[gain_A[i][j], gain_A[i][j+1]],[gain_A[i+1][j], gain_A[i+1][j+1]]])
 		gain_Ai[int(i/2),int(j/2)] = gain_Aij
 
@@ -141,11 +142,12 @@ print(f"Gain A: \n{gain_A}\n")
 print(f"Shape of gain A: {gain_A.shape}")
 
 ########################### Simulation ############################
-time_interval = 0.01 # 1 second
+time_interval = 0.02 # in second
+
 current_position = deepcopy(initial_position)
 print(f"\nShape of current_position[0]: {current_position[0].shape}\n")
 
-output_file = open("liveCoordinate.txt", "w")
+output_file = open("python_generated_path.txt", "w")
 
 # control vector
 u = np.zeros((number_of_agent,2,1))
@@ -154,23 +156,22 @@ print(f"u: {u}.\n\n")
 for i in range(number_of_agent):
 	if (i < (number_of_agent-1)):
 		output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])},")
-		# print(f"type: {type}")
 	else:
 		output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])}")
 output_file.write("\n")	
-for iteration in range(2000): # iterate for 5 times
-	# print(f"Iteration number: {iteration}.")
+for iteration in range(100): # iterate for n times
+	print(f"\nIteration number: {iteration}.")
+	previous_position = deepcopy(current_position)
 	for i in range(number_of_agent): # calculate new position of all agents
 		u[i] = np.zeros((2,1))
 		
 		# calculate control vector of 1 agent
 		for j in range(number_of_agent): 
 			u[i] = u[i] + gain_A[i][j]*current_position[j].transpose() + scale_adjustment_fnc(current_position[i].transpose(), current_position[j].transpose(), dij_star[i][j])
-		# u[i] = u[i] + 
+
+		u[i] = dynamic_collision_avoicedance(current_position, i, u[i], number_of_agent)
 
 		current_position[i] = current_position[i] + u[i].transpose()*time_interval
-		# print(f"control vector of agent {i}: {u[i].transpose()}")
-		# print(f"current_position of agent {i}: {current_position[i]}\n")
 
 		if (i < (number_of_agent-1)):
 			output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])},")
@@ -178,11 +179,10 @@ for iteration in range(2000): # iterate for 5 times
 			output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])}")
 	
 	output_file.write("\n")	
-	if u.any() == 0:
+
+	if np.array_equal(current_position, previous_position):
 		print("Formation is formed.")
 		break	
-	# print("\n")
-
 
 output_file.close()
 
