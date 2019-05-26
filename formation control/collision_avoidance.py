@@ -2,8 +2,8 @@ import numpy as np
 from math import acos, cos, sin, pi
 from numpy.linalg import norm as norm_np
 
-safety_radius = 40
-collision_avoicedance_distance = 60
+safety_radius = 30
+collision_avoicedance_distance = 40
 
 def unit_vector(vector):
     return vector / norm_np(vector)
@@ -18,7 +18,7 @@ def angle_between(v1, v2) :
 
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
-def collision_avoicedance(agent, neighbor, distance, u_fnc, agent_id):
+def collision_avoicedance(agent, neighbor, distance, u_fnc, agent_id, danger_neighbor_id):
     global safety_radius
 
     for i in range(len(neighbor)):
@@ -29,7 +29,9 @@ def collision_avoicedance(agent, neighbor, distance, u_fnc, agent_id):
             # angle between a2n_vector and u_fnc
             phi = angle_between(a2n_vector[0], u_fnc)
             if (phi<alpha): # true if control vector is in the danger cone
-                print(f"Agent {agent_id} is in danger.")
+                print(f"Agent {agent_id} is in danger because of neighbor {danger_neighbor_id[i]}.")
+                print(f"phi: {phi/pi*180}, alpha: {alpha/pi*180}.")
+                print(f"distance: {distance[i]}.")
                 rotate_angle = 0
                 rotate_angle = alpha - phi
                 # We don't really know the sign of rotate_angle, i.e rotate CW or CCW
@@ -45,24 +47,24 @@ def collision_avoicedance(agent, neighbor, distance, u_fnc, agent_id):
                 if (agent[0][1] < neighbor[i][0][1]): # if agent is closer to x axis than neighbor
 
                     if (u_fnc_Xaxis_angle > a2n_Xaxis_angle): 
-                        print("Case 1.")
+                        # print("Case 1.")
                         rotate_angle = rotate_angle # rotate angle is positive
 
                     elif (u_fnc_Xaxis_angle < a2n_Xaxis_angle):
-                        print("Case 2.")
+                        # print("Case 2.")
                         rotate_angle = -rotate_angle # rotate angle is negative
 
                 elif (agent[0][1] > neighbor[i][0][1]):
                    
                     if (u_fnc_Xaxis_angle < a2n_Xaxis_angle): 
-                        print("Case 3.")
+                        # print("Case 3.")
                         rotate_angle = rotate_angle # rotate angle is positive
 
                     elif (u_fnc_Xaxis_angle > a2n_Xaxis_angle):
-                        print("Case 4.")
+                        # print("Case 4.")
                         rotate_angle = -rotate_angle # rotate angle is negative
                 
-                if (abs(rotate_angle) < pi/2):
+                if (abs(rotate_angle) > pi/2):
                     print(f"Agent {agent_id} has to stop.")
                     u_fnc = 0
                     return u_fnc
@@ -82,22 +84,27 @@ def dynamic_collision_avoicedance(current_pos_fnc, agent_id, u_fnc, n_agent):
 
     danger_neighbor = []
     distance_to_danger_neighbor = []
+    danger_neighbor_id = []
 
     for i in range(n_agent): # go through all the neighbors
         if (i != agent_id): # if it is not itself(i.e a neighbor), then...
             # Calculate distance from agent to the neighbor
             distance = norm_np(current_pos_fnc[agent_id] - current_pos_fnc[i])
-            # print(f"distance from agent {agent_id} to neighbor {i}: {distance}.")
+            print(f"agent {agent_id} position: {current_pos_fnc[agent_id]}")
+            print(f"neighbor {i} position: {current_pos_fnc[i]}")
+            print(f"distance from agent {agent_id} to neighbor {i}: {distance}.")
             if (distance < collision_avoicedance_distance): # check if this neighbor is the danger_neighbor
                 danger_neighbor.append(current_pos_fnc[i])
                 distance_to_danger_neighbor.append(distance)
+                danger_neighbor_id.append(i)
 
     if (len(danger_neighbor) != 0): 
-        # print(f"Agent {agent_id} is in danger activation range.")
+        print(f"Agent {agent_id} is in danger activation range.")
         danger_neighbor = np.array(danger_neighbor)
         distance_to_danger_neighbor = np.array(distance_to_danger_neighbor)
+        danger_neighbor_id = np.array(danger_neighbor_id)
 
-        u_fnc = collision_avoicedance(current_pos_fnc[agent_id], danger_neighbor, distance_to_danger_neighbor, u_fnc, agent_id)
+        u_fnc = collision_avoicedance(current_pos_fnc[agent_id], danger_neighbor, distance_to_danger_neighbor, u_fnc, agent_id, danger_neighbor_id)
 
     # else:
     #     print(f"Agent {agent_id} not in danger activation range.")
