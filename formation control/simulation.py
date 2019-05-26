@@ -13,41 +13,6 @@ color = ['r', 'b', 'g', 'y', 'c', 'b']
 
 number_of_agent = 6
 scale_constant = 0.1
-# color = ['black', 'dimgray', 'dimgrey', 'gray', 'grey', 'darkgray','darkgrey']
-
-# read input text file from matlab and set target list
-input_file1 = open("python_generated_path.txt","r")
-input_matrix1 = [] 
-
-input_file2 = open("python_generated_control_vector.txt","r")
-input_matrix2 = []
-
-# Coordinate
-while True:
-	input_line1 = input_file1.readline()
-	if len(input_line1) == 0:
-		break
-	input_line1 = input_line1.rstrip("\n")
-	input_matrix1.append(input_line1.split(","))
-
-for i in range(len(input_matrix1)):
-	for j in range(len(input_matrix1[0])):
-		input_matrix1[i][j] = int(float(input_matrix1[i][j]))
-
-# Control vector (velocity)
-while True:
-	input_line2 = input_file2.readline()
-	if len(input_line2) == 0:
-		break
-	input_line2 = input_line2.rstrip("\n")
-	input_matrix2.append(input_line2.split(","))
-
-for i in range(len(input_matrix2)):
-	for j in range(len(input_matrix2[0])):
-		input_matrix2[i][j] = int(float(input_matrix2[i][j]))
-
-# print(f"len(input_matrix1): {len(input_matrix1)}")
-# print(f"len(input_matrix2): {len(input_matrix2)}")
 
 def animate(i):
 	global iteration
@@ -85,12 +50,80 @@ def animate(i):
 		iteration = iteration + 1
 
 def showGraph():
+	global input_matrix1
+	global input_matrix2
+
+	# read input text file from matlab and set target list
+	input_file1 = open("python_generated_path.txt","r")
+	input_matrix1 = [] 
+
+	input_file2 = open("python_generated_control_vector.txt","r")
+	input_matrix2 = []
+
+	# Coordinate
+	while True:
+		input_line1 = input_file1.readline()
+		if len(input_line1) == 0:
+			break
+		input_line1 = input_line1.rstrip("\n")
+		input_matrix1.append(input_line1.split(","))
+
+	for i in range(len(input_matrix1)):
+		for j in range(len(input_matrix1[0])):
+			input_matrix1[i][j] = int(float(input_matrix1[i][j]))
+
+	# Control vector (velocity)
+	while True:
+		input_line2 = input_file2.readline()
+		if len(input_line2) == 0:
+			break
+		input_line2 = input_line2.rstrip("\n")
+		input_matrix2.append(input_line2.split(","))
+
+	for i in range(len(input_matrix2)):
+		for j in range(len(input_matrix2[0])):
+			input_matrix2[i][j] = int(float(input_matrix2[i][j]))
+	
 	ani = animation.FuncAnimation(fig, animate, interval=100)
 	plt.show()
 
 
 if __name__ == '__main__':
-	ani = animation.FuncAnimation(fig, animate, interval=100)
+	global input_matrix1
+	global input_matrix2
+
+	# read input text file from matlab and set target list
+	input_file1 = open("python_generated_path.txt","r")
+	input_matrix1 = [] 
+
+	input_file2 = open("python_generated_control_vector.txt","r")
+	input_matrix2 = []
+
+	# Coordinate
+	while True:
+		input_line1 = input_file1.readline()
+		if len(input_line1) == 0:
+			break
+		input_line1 = input_line1.rstrip("\n")
+		input_matrix1.append(input_line1.split(","))
+
+	for i in range(len(input_matrix1)):
+		for j in range(len(input_matrix1[0])):
+			input_matrix1[i][j] = int(float(input_matrix1[i][j]))
+
+	# Control vector (velocity)
+	while True:
+		input_line2 = input_file2.readline()
+		if len(input_line2) == 0:
+			break
+		input_line2 = input_line2.rstrip("\n")
+		input_matrix2.append(input_line2.split(","))
+
+	for i in range(len(input_matrix2)):
+		for j in range(len(input_matrix2[0])):
+			input_matrix2[i][j] = int(float(input_matrix2[i][j]))
+
+	ani = animation.FuncAnimation(fig, animate, interval=1000)
 	# ani.save("simulation.mp4")
 	plt.show()
 
