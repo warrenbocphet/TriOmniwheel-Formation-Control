@@ -142,7 +142,7 @@ print(f"Gain A: \n{gain_A}\n")
 print(f"Shape of gain A: {gain_A.shape}")
 
 ########################### Simulation ############################
-time_interval = 0.1 # in second
+time_interval = 0.025 # in second
 
 current_position = deepcopy(initial_position)
 print(f"\nShape of current_position[0]: {current_position[0].shape}\n")
