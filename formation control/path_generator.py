@@ -142,12 +142,13 @@ print(f"Gain A: \n{gain_A}\n")
 print(f"Shape of gain A: {gain_A.shape}")
 
 ########################### Simulation ############################
-time_interval = 0.02 # in second
+time_interval = 0.1 # in second
 
 current_position = deepcopy(initial_position)
 print(f"\nShape of current_position[0]: {current_position[0].shape}\n")
 
-output_file = open("python_generated_path.txt", "w")
+output_file1 = open("python_generated_path.txt", "w")
+output_file2 = open("python_generated_control_vector.txt", "w")
 
 # control vector
 u = np.zeros((number_of_agent,2,1))
@@ -155,12 +156,15 @@ print(f"u: {u}.\n\n")
 
 for i in range(number_of_agent):
 	if (i < (number_of_agent-1)):
-		output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])},")
+		output_file1.write(f"{int(current_position[i].transpose()[0])},{int(current_position[i].transpose()[1])},")
+		output_file2.write(f"{0},{0},")
 	else:
-		output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])}")
-output_file.write("\n")	
+		output_file1.write(f"{int(current_position[i].transpose()[0])},{int(current_position[i].transpose()[1])}")
+		output_file2.write(f"{0},{0}")
+output_file1.write("\n")	
+output_file2.write("\n")
 for iteration in range(100): # iterate for n times
-	print(f"\nIteration number: {iteration}.")
+	print(f"\n\n\nIteration number: {iteration}.")
 	previous_position = deepcopy(current_position)
 	for i in range(number_of_agent): # calculate new position of all agents
 		u[i] = np.zeros((2,1))
@@ -169,21 +173,35 @@ for iteration in range(100): # iterate for n times
 		for j in range(number_of_agent): 
 			u[i] = u[i] + gain_A[i][j]*current_position[j].transpose() + scale_adjustment_fnc(current_position[i].transpose(), current_position[j].transpose(), dij_star[i][j])
 
+		print(f"Control vector of agent {i} before collision avoidance is {u[i]}.")
+		print(f"Current position of agent {i} before this iteration: {current_position[i]}")
 		u[i] = dynamic_collision_avoicedance(current_position, i, u[i], number_of_agent)
-
+		print(f"Control vector of agent {i} after collision avoidance is {u[i]}.")	
 		current_position[i] = current_position[i] + u[i].transpose()*time_interval
+		print(f"Current position of agent {i} after this iteration: {current_position[i]}\n")
 
 		if (i < (number_of_agent-1)):
-			output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])},")
+			output_file1.write(f"{int(current_position[i].transpose()[0])},{int(current_position[i].transpose()[1])},")
 		else:
-			output_file.write(f"{float(current_position[i].transpose()[0])},{float(current_position[i].transpose()[1])}")
+			output_file1.write(f"{int(current_position[i].transpose()[0])},{int(current_position[i].transpose()[1])}")
 	
-	output_file.write("\n")	
+	for i in range(number_of_agent): # write the control vector of the agent into text file
+		if (i < (number_of_agent-1)):
+			output_file2.write(f"{round(float(u[i][0]),2)},{round(float(u[i][1]),2)},")
+		else:
+			output_file2.write(f"{round(float(u[i][0]),2)},{round(float(u[i][1]),2)}")
+
+
+	output_file1.write("\n")	
+	output_file2.write("\n")
+
+	print(f"Current position: \n{current_position}")
 
 	if np.array_equal(current_position, previous_position):
 		print("Formation is formed.")
 		break	
 
-output_file.close()
+output_file1.close()
+output_file2.close()
 
 showGraph()
