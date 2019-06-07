@@ -33,12 +33,12 @@ The collision avoidance will be explained further down, let's first have a look 
 #### Hexagon
 ![Alt Text](https://i.imgur.com/Hfp8QQ0.gif)
 
-![Alt Text](https://imgur.com/ISlEp2k.gif)
+![Alt Text](https://imgur.com/erGZwwM.gif)
 
 #### Triangle
 ![Alt Text](https://i.imgur.com/Pr2BR32.gif)
 
-![Alt Text](https://imgur.com/khadzax.gif)
+![Alt Text](https://imgur.com/bW4sY1b.gif)
 
 
 #### X shape
