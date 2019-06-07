@@ -31,10 +31,10 @@ The same triangle formation with different starting position. Noticed how the fo
 The collision avoidance will be explained further down, let's first have a look at the simulation and the result:
 
 #### Hexagon
-![Alt Text](https://imgur.com/Hfp8QQ0.gif)
+![Alt Text](https://i.imgur.com/Hfp8QQ0.gif)
 ![Alt Text](https://imgur.com/ISlEp2k.gif)
 #### Triangle
-![Alt Text](https://imgur.com/Pr2BR32.gif)
+![Alt Text](https://i.imgur.com/Pr2BR32.gif)
 ![Alt Text](https://imgur.com/khadzax.gif)
 #### X shape
 ![Alt Text](https://i.imgur.com/LUwJB9V.gif)
