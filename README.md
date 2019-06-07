@@ -19,7 +19,7 @@ Real data feedback and put into simulation
 Real demo. Noticed how the position of the rovers and the feedback position is not entirely the same. Overtime, the system introduce more and more error. Since the system is self guidance, there's no correction during performance.
 ![Alt Text](https://i.imgur.com/Ef7aGyV.gif)
 
-### Formation control without collision avoicedance
+### Formation control without collision avoidance
 Generate path to form a triangle formation. Connected circle represent rover with radius, dash circle represent the safety distance (collision avoicedance is not implement in the GIF below).
 ![Alt Text](https://i.imgur.com/ODTWwnD.gif)
 
@@ -27,6 +27,21 @@ The same triangle formation with different starting position. Noticed how the fo
 
 ![Alt Text](https://i.imgur.com/WZkjorT.gif)
 
+### Formation control with collision avoidance
+The collision avoidance will be explained further down, let's first have a look at the simulation and the result:
+
+#### Hexagon
+![Alt Text](https://imgur.com/Hfp8QQ0.gif)
+![Alt Text](https://imgur.com/ISlEp2k.gif)
+#### Triangle
+![Alt Text](https://imgur.com/Pr2BR32.gif)
+![Alt Text](https://imgur.com/khadzax.gif)
+#### X shape
+![Alt Text](https://i.imgur.com/LUwJB9V.gif)
+![Alt Text](https://imgur.com/bYgxLGv.gif)
+#### Cross
+![Alt Text](https://i.imgur.com/rR9ngYH.gif)
+![Alt Text](https://imgur.com/uuUhYH2.gif)
 
 ## Reference
 [1] Fathian, Kaveh & Safaoui, Sleiman & Summers, Tyler & Gans, Nicholas. (2018). Robust Distributed Planar Formation Control for Higher-Order Holonomic and Nonholonomic Agents. Link: https://www.researchgate.net/publication/326696917_Robust_Distributed_Planar_Formation_Control_for_Higher-Order_Holonomic_and_Nonholonomic_Agents
