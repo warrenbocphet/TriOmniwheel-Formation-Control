@@ -52,7 +52,7 @@ The collision avoidance will be explained further down, let's first have a look 
 
 ![Alt Text](https://imgur.com/uuUhYH2.gif)
 
-#### Accumulating error
+#### Accumulating error (youtube link)
 [![IMAGE ALT TEXT](https://img.youtube.com/vi/cinEIDQ7HyU/0.jpg)](https://www.youtube.com/watch?v=cinEIDQ7HyU "Accumulating error")
 
 ## Reference
