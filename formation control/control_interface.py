@@ -73,6 +73,9 @@ class rover:
 	def setTargetList(self, target):
 		self.targetList.append(target)
 
+	def clearTargetList(self):
+		self.targetList = []
+
 	def setID(self, identification):
 		self.id = identification
 
@@ -124,17 +127,24 @@ if __name__ == '__main__':
 	########################################### Read input text file ###########################################
 	init_choice = 0
 	while (init_choice != -1):
+		# Clear all current target list before doing anything else.
+		for i in range(number_of_rover):
+			roverPlatform[i].clearTargetList()
+
+		# Choose the path
 		print("\nWhat file you want to run now?")
 		print(" 1. [triangle.txt]")
-		print(" 2. [x_shape.txt]")
-		print(" 3. [y_shape.txt]")
-		print(" 4. [hexagon.txt]")
+		print(" 2. [hexagon.txt]")
+		print(" 3. [cross.txt]")
+		print(" 4. [x_shape.txt]")
 		print(" 0. Other file.")
 		print("-1. Exit.")
 		init_choice = int(input("I choose: "))
 
 		if (init_choice == -1):
 			break
+
+		# Setup initial position
 		print("\nDo you want to setup initial position?")
 		print("1 for yes, 0 for no.")
 		init_position = int(input("I choose: "))
@@ -150,7 +160,7 @@ if __name__ == '__main__':
 				while (True):
 					try:
 						setStartingPoint[0] = int(input("X: "))
-						setStartingPoint[1] = int(input("y: "))
+						setStartingPoint[1] = int(input("Y: "))
 						# setStartingPoint[2] = int(input("phi: "))
 						setStartingPoint[2] = 0
 
@@ -194,11 +204,11 @@ if __name__ == '__main__':
 		elif (init_choice == 1):
 			input_file_name = "triangle.txt"
 		elif (init_choice == 2):
-			input_file_name = "x_shape.txt"
-		elif (init_choice == 3):
-			input_file_name = "y_shape.txt"
-		elif (init_choice == 4):
 			input_file_name = "hexagon.txt"
+		elif (init_choice == 3):
+			input_file_name = "cross.txt"
+		elif (init_choice == 4):
+			input_file_name = "x_shape.txt"
 
 		input_file = open(input_file_name,"r")
 		output_file = open("liveCoordinate.txt", "w")
