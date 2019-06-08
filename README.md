@@ -52,6 +52,9 @@ The collision avoidance will be explained further down, let's first have a look 
 
 ![Alt Text](https://imgur.com/uuUhYH2.gif)
 
+#### Accumulating error
+[![IMAGE ALT TEXT](https://img.youtube.com/vi/cinEIDQ7HyU/0.jpg)](https://www.youtube.com/watch?v=cinEIDQ7HyU "Accumulating error")
+
 ## Reference
 [1] Fathian, Kaveh & Safaoui, Sleiman & Summers, Tyler & Gans, Nicholas. (2018). Robust Distributed Planar Formation Control for Higher-Order Holonomic and Nonholonomic Agents. Link: https://www.researchgate.net/publication/326696917_Robust_Distributed_Planar_Formation_Control_for_Higher-Order_Holonomic_and_Nonholonomic_Agents
 
