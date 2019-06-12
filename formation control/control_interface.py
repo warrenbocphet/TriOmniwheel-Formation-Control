@@ -137,6 +137,7 @@ if __name__ == '__main__':
 		print(" 2. [hexagon.txt]")
 		print(" 3. [cross.txt]")
 		print(" 4. [x_shape.txt]")
+		print(" 5. [input.txt]")
 		print(" 0. Other file.")
 		print("-1. Exit.")
 		init_choice = int(input("I choose: "))
@@ -146,7 +147,7 @@ if __name__ == '__main__':
 
 		# Setup initial position
 		print("\nDo you want to setup initial position?")
-		print("1 for yes, 0 for no.")
+		print("2 to read the first line as initial position, 1 for yes, 0 for no.")
 		init_position = int(input("I choose: "))
 		if (init_position == 0):
 			print("Using the current coordinate.")
@@ -209,6 +210,8 @@ if __name__ == '__main__':
 			input_file_name = "cross.txt"
 		elif (init_choice == 4):
 			input_file_name = "x_shape.txt"
+		elif (init_choice == 5):
+			input_file_name = "input.txt"
 
 		input_file = open(input_file_name,"r")
 		output_file = open("liveCoordinate.txt", "w")
@@ -227,8 +230,39 @@ if __name__ == '__main__':
 					if (roverPlatform[j].id == k): # the target of a rover will be located at column id (x) and column id+1 (y)
 						roverPlatform[j].setTargetList([int(float(input_matrix[i][k*2])*scaling_factor), int(float(input_matrix[i][k*2+1])*scaling_factor), 0])
 
-		
+		if (init_position == 2): # Set the first line of text file as the initial position
+			for i in range(number_of_rover):
+				setStartingPoint = deepcopy(roverPlatform[i].targetList[0])
+				setStartingPointByte = deepcopy(coor2bytes(setStartingPoint))
 
+				roverPlatform[i].socket.send(bytes([2]))
+				roverPlatform[i].socket.send(bytes(setStartingPointByte))
+
+				print(f"I already sent the new starting coordinate {setStartingPoint} to Rover {i}.")
+				print(f"Asking rover with ID {roverPlatform[i].id} current position.") # double check
+				while (True):
+						try:
+							roverPlatform[i].socket.send(bytes([1]))
+							bytesReceived = []
+							full_msg = []
+
+							while (len(full_msg) < 8):
+								bytesReceived = roverPlatform[i].socket.recv(8)
+								for x in range(len(bytesReceived)):
+									full_msg.append(bytesReceived[x])
+							
+							receivedCoor = bytes2coor(full_msg)
+							roverPlatform[i].setCurrentCoor(receivedCoor)
+							break
+
+						except socket.timeout:
+							pass
+
+				print(f"Rover with ID {roverPlatform[i].id} current position is: {roverPlatform[i].currentCoor}")
+				print()
+
+		input_file.close()
+		
 		########################################### Start sending target ###########################################
 
 		# send first target
