@@ -55,6 +55,7 @@ The collision avoidance will be explained further down, let's first have a look 
 #### Accumulating error (youtube link)
 [![IMAGE ALT TEXT](https://img.youtube.com/vi/cinEIDQ7HyU/0.jpg)](https://www.youtube.com/watch?v=cinEIDQ7HyU "Accumulating error")
 
+#### Reducing accumulating error by reducing the speed (youtube link)
 [![IMAGE ALT TEXT](https://img.youtube.com/vi/cinEIDQ7HyU/0.jpg)](https://youtu.be/D_yIDlyvtvU "Reducing accumulating error by reducing the speed")
 
 ## Reference
