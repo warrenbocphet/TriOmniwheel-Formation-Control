@@ -1,5 +1,5 @@
 # 3-OmniWheels-Rover-Platform
-Summer research 2018-2019. Rover platform development for autonomous and multi agent system.
+This project developed by students in the University of Adelaide during the Summer Research project 2018-2019, which developed a 3WD  rover platform for autonomous multi-agent systems.
 
 ## Overview:
 >The distributed system will contain multiple agents. Each agent can make its own decision. However, the four agents still need to communicate with each other about the velocity, the current position, the destination and the angle of the agent. This allows an agreement to be made to achieve the desired formation.
