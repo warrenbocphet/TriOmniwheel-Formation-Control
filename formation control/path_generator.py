@@ -8,7 +8,7 @@ from cvxpy.atoms.lambda_min import lambda_min
 from cvxpy.atoms.norm import norm
 from copy import deepcopy
 from simulation import showGraph
-from test_collision_avoicedance2 import dynamic_collision_avoicedance
+from collision_avoidance import dynamic_collision_avoicedance
 
 def unit_vector(vector):
     return vector / np.linalg.norm_np(vector)
