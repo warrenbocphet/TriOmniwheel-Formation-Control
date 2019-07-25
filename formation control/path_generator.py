@@ -51,16 +51,28 @@ def rotate_coordinate(xy, radians):
 ############################### Find gain A #################################
 
 # Triangle
-# initial_position = np.matrix([[0, -94], [94, -94], [94, 0], [0, 94], [-94, 94], [-94, 0]])
-# destination = np.array([-1, 0, 0, 0, 1, 0, 0.5, 0.5, 0, 1, -0.5, 0.5])*100
+initial_position = np.array([[0, -94], [94, -94], [94, 0], [0, 94], [-94, 94], [-94, 0]])
+destination = np.array([-1, 0, 0, 0, 1, 0, 0.5, 0.5, 0, 1, -0.5, 0.5])*100
 
 # Hexagon
-# initial_position = np.matrix([[0, -47], [94, -47], [94, 47], [0, 47], [-94, 47], [-94, -47]])
+# initial_position = np.array([[0, -47], [94, -47], [94, 47], [0, 47], [-94, 47], [-94, -47]])
 # destination = np.array([-0.5, -1, 0.5, -1, 1, 0, 0.5, 1, -0.5, 1, -1, 0])*100
 
 # T - shape (Twice fan)
-initial_position = np.matrix([[94, -94], [0, -94], [-94, -94], [-94, 94], [0, 94], [94, 94]])
-destination = np.array([0.5, 1, 0, 0, -0.5, 1, -1, 1, 0, 0.5, 1, 1])*100
+# initial_position = np.array([[94, -94], [0, -94], [-94, -94], [-94, 94], [0, 94], [94, 94]])
+# destination = np.array([0.5, 1, 0, 0, -0.5, 1, -1, 1, 0, 0.5, 1, 1])*100
+
+# X_shape
+# initial_position = np.array([[94, -94], [0, -94], [-94, -94], [-94, 94], [0, 94], [94, 94]])
+# destination = np.array([-1, -1, -0.5, 0, 0.5, 0, -1, 1, 1, 1, 1, -1])*75
+
+# Cross
+# initial_position = np.array([[94, -94], [0, -94], [-94, -94], [-94, 94], [0, 94], [94, 94]])
+# destination = np.array([0, -0.5, 0, 0, 0, 0.5, -0.5, 0.5, 0, 1, 0.5, 0.5])*100
+
+# Line
+# initial_position = np.array([[94, -94], [0, -94], [-94, -94], [-94, 94], [0, 94], [94, 94]])
+# destination = np.array([0.5, 0, 0, -1, -0.5, 0, -1, 0, 0, 0, 1, 0])*100
 
 
 print(f"Initial position: {initial_position}.")
@@ -70,8 +82,6 @@ print(f"destination: {destination}.")
 destination_bar = np.zeros(len(destination))
 for i in range(0,len(destination),2):
 	destination_bar[i], destination_bar[i+1] = rotate_coordinate((destination[i], destination[i+1]), pi/2)
-	# destination_bar[i] = round(destination_bar[i], 2)
-	# destination_bar[i+1] = round(destination_bar[i+1], 2)
 	destination_bar[i] = destination_bar[i]
 	destination_bar[i+1] = destination_bar[i+1]
 
@@ -91,7 +101,7 @@ print(f"\n\nvector_one: {vector_one}.")
 print(f"vector_one_bar: {vector_one_bar}.")
 
 # vector_N = np.concatenate((vector_one, vector_one_bar, destination, destination_bar), axis = 1)
-N = np.matrix([vector_one, vector_one_bar, destination, destination_bar]).transpose()
+N = np.array([vector_one, vector_one_bar, destination, destination_bar]).transpose()
 print(f"\n\nMatrix N: {N}.")
 print(f"Shape of N: {N.shape}.")
 
@@ -119,7 +129,7 @@ constraint = [A*N == 0,
 problem = cp.Problem(objective, constraint)
 problem.solve()
 
-gain_A = np.matrix(A.value).round(5)
+gain_A = np.array(A.value).round(5)
 # gain_A = np.matrix(A.value)
 
 print(f"Status: {problem.status}. \n")
@@ -133,7 +143,7 @@ gain_Ai = np.zeros((number_of_agent,number_of_agent,2,2)) # I try putting everyt
 
 for i in range(0,gain_A.shape[0],2): # go through all agents
 	for j in range(0,gain_A.shape[1],2): # go through all neighbor
-		gain_Aij = np.matrix([[gain_A[i][j], gain_A[i][j+1]],[gain_A[i+1][j], gain_A[i+1][j+1]]])
+		gain_Aij = np.array([[gain_A[i][j], gain_A[i][j+1]],[gain_A[i+1][j], gain_A[i+1][j+1]]])
 		gain_Ai[int(i/2),int(j/2)] = gain_Aij
 
 gain_A = gain_Ai # The final gain.
@@ -151,45 +161,46 @@ output_file1 = open("python_generated_path.txt", "w")
 output_file2 = open("python_generated_control_vector.txt", "w")
 
 # control vector
-u = np.zeros((number_of_agent,2,1))
+u = np.zeros((number_of_agent,2))
 print(f"u: {u}.\n\n")
 
 for i in range(number_of_agent):
 	if (i < (number_of_agent-1)):
-		output_file1.write(f"{int(current_position[i].transpose()[0])},{int(current_position[i].transpose()[1])},")
+		output_file1.write(f"{int(current_position[i][0])},{int(current_position[i][1])},")
 		output_file2.write(f"{0},{0},")
 	else:
-		output_file1.write(f"{int(current_position[i].transpose()[0])},{int(current_position[i].transpose()[1])}")
+		output_file1.write(f"{int(current_position[i][0])},{int(current_position[i][1])}")
 		output_file2.write(f"{0},{0}")
 output_file1.write("\n")	
 output_file2.write("\n")
-for iteration in range(100): # iterate for n times
+
+for iteration in range(50): # iterate for n times
 	print(f"\n\n\nIteration number: {iteration}.")
 	previous_position = deepcopy(current_position)
 	for i in range(number_of_agent): # calculate new position of all agents
-		u[i] = np.zeros((2,1))
+		u[i] = np.zeros(2)
 		
 		# calculate control vector of 1 agent
 		for j in range(number_of_agent): 
-			u[i] = u[i] + gain_A[i][j]*current_position[j].transpose() + scale_adjustment_fnc(current_position[i].transpose(), current_position[j].transpose(), dij_star[i][j])
+			u[i] = u[i] + np.dot(gain_A[i][j],current_position[j].transpose()) + scale_adjustment_fnc(current_position[i].transpose(), current_position[j].transpose(), dij_star[i][j])
 
 		print(f"Control vector of agent {i} before collision avoidance is {u[i]}.")
 		print(f"Current position of agent {i} before this iteration: {current_position[i]}")
 		u[i] = dynamic_collision_avoicedance(current_position, i, u[i], number_of_agent)
 		print(f"Control vector of agent {i} after collision avoidance is {u[i]}.")	
-		current_position[i] = current_position[i] + u[i].transpose()*time_interval
+		current_position[i] = current_position[i] + u[i]*time_interval
 		print(f"Current position of agent {i} after this iteration: {current_position[i]}\n")
 
 		if (i < (number_of_agent-1)):
-			output_file1.write(f"{int(current_position[i].transpose()[0])},{int(current_position[i].transpose()[1])},")
+			output_file1.write(f"{int(current_position[i][0])},{int(current_position[i][1])},")
 		else:
-			output_file1.write(f"{int(current_position[i].transpose()[0])},{int(current_position[i].transpose()[1])}")
+			output_file1.write(f"{int(current_position[i][0])},{int(current_position[i][1])}")
 	
 	for i in range(number_of_agent): # write the control vector of the agent into text file
 		if (i < (number_of_agent-1)):
-			output_file2.write(f"{round(float(u[i][0]),2)},{round(float(u[i][1]),2)},")
+			output_file2.write(f"{round(float(u[i,0]),2)},{round(float(u[i,1]),2)},")
 		else:
-			output_file2.write(f"{round(float(u[i][0]),2)},{round(float(u[i][1]),2)}")
+			output_file2.write(f"{round(float(u[i,0]),2)},{round(float(u[i,1]),2)}")
 
 
 	output_file1.write("\n")	
@@ -198,7 +209,7 @@ for iteration in range(100): # iterate for n times
 	print(f"Current position: \n{current_position}")
 
 	if np.array_equal(current_position, previous_position):
-		print("Formation is formed.")
+		print("Formation is formed (or deadlock).")
 		break	
 
 output_file1.close()
