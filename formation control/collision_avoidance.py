@@ -3,17 +3,11 @@ from math import acos, asin, cos, sin, pi
 from numpy.linalg import norm
 
 safety_radius = 30
-collision_avoicedance_distance = 45
+collision_avoicedance_distance = 60
 
-def unit_vector(vector):
-    return vector / norm(vector)
+def signed_angle_between(v1, v2) :
 
-def angle_between(v1, v2) :
-
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+    return np.arcsin(np.cross(v1, v2)/(norm(v1)*norm(v2)))
 
 def collision_avoicedance(agent, danger_neighbor, distance, control_vector, agent_id, danger_neighbor_id):
     global safety_radius
@@ -32,7 +26,7 @@ def collision_avoicedance(agent, danger_neighbor, distance, control_vector, agen
         a2n_vector = np.array(danger_neighbor[i] - agent)
         # print(f"a2n_vector: {a2n_vector}.")
         # angle between a2n_vector and control_vectors
-        phi = angle_between(a2n_vector, control_vector)
+        phi = abs(signed_angle_between(a2n_vector, control_vector))
         if (phi<alpha): # true if control vector is in the danger cone
             # print(f"Agent {agent_id} is in danger because of neighbor {danger_neighbor_id[i]}.")
             # print(f"phi: {phi/pi*180}, alpha: {alpha/pi*180}.")
@@ -41,14 +35,28 @@ def collision_avoicedance(agent, danger_neighbor, distance, control_vector, agen
             # print(f"Rotate angle: {rotate_angle/pi*180}")
             
             if (abs(rotate_angle) > pi/2):
-                # print(f"Agent {agent_id} has to stop.")
+                print(f"Agent {agent_id} has to stop because turning angle is bigger than 90 degree.")
                 control_vector = np.zeros(2)
                 return control_vector
             
-            rotation_matrix = np.array([[cos(alpha), -sin(alpha)], [sin(alpha), cos(alpha)]])
-            tangential_vector_a2n = np.dot(rotation_matrix,a2n_vector)
+            rotation_matrix1 = np.array([[cos(alpha), -sin(alpha)], [sin(alpha), cos(alpha)]])
+            tangential_vector_a2n_1 = np.dot(rotation_matrix1,a2n_vector)
 
-            control_vector = (norm(control_vector)/norm(tangential_vector_a2n))*tangential_vector_a2n
+            rotation_matrix2 = np.array([[cos(-alpha), -sin(-alpha)], [sin(-alpha), cos(-alpha)]])
+            tangential_vector_a2n_2 = np.dot(rotation_matrix2,a2n_vector)
+
+            turn_angle1 = signed_angle_between(control_vector, tangential_vector_a2n_1)
+            turn_angle2 = signed_angle_between(control_vector, tangential_vector_a2n_2)
+
+            if (abs(turn_angle1)<abs(turn_angle2)):
+                rotation_matrix3 = np.array([[cos(turn_angle1), -sin(turn_angle1)], [sin(turn_angle1), cos(turn_angle1)]])
+                control_vector = np.dot(rotation_matrix3,control_vector)
+
+            else:
+                rotation_matrix3 = np.array([[cos(turn_angle2), -sin(turn_angle2)], [sin(turn_angle2), cos(turn_angle2)]])
+                control_vector = np.dot(rotation_matrix3,control_vector)
+
+            print(f"Agent {agent_id} has to turn to get away from danger cone.")
             return control_vector
             # the reason I return right when I found the rotation angle is because I don't think there's 
             # a possibility for the control vector to be in between 2 danger cone.
