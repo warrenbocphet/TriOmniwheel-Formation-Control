@@ -21,29 +21,25 @@ classdef rover_class < handle
         end
         
         function setInitialCoor(obj,x,y,phi)
-            byte_array = [0,0,0,0,0,0];
             obj.current_coor = [x,y,phi];
             fwrite(obj.tcp_port, 2, 'uint8'); % notify the rover that we are sending initial coordinate
-            byte_array = coor2byte(x,y,phi);
+            [byte1,byte2,byte3,byte4,byte5,byte6] = coor2byte(x,y,phi);
 
-            fwrite(obj.tcp_port, byte_array,'uint8');
+            fwrite(obj.tcp_port, [byte1,byte2,byte3,byte4,byte5,byte6],'uint8');
         end
         
         function sendTarget(obj,x,y,phi)
-            byte_array = [0,0,0,0,0,0];
             obj.target = [x,y,phi];
             fwrite(obj.tcp_port, 0, 'uint8'); % notify the rover that we are sending the target
-            byte_array = coor2byte(x,y,phi);
+            [byte1,byte2,byte3,byte4,byte5,byte6] = coor2byte(x,y,phi);
 
-            fwrite(obj.tcp_port, byte_array,'uint8');
+            fwrite(obj.tcp_port, [byte1,byte2,byte3,byte4,byte5,byte6],'uint8');
         end
         
         function getCoordinate(obj)
-            byte_array = [0,0,0,0,0,0];
-
-            fwrite(obj.tcp_port, 0, 'uint8'); % notify the rover that we are getting the current coordinate
+            fwrite(obj.tcp_port, 1, 'uint8'); % notify the rover that we are getting the current coordinate
             byte_array = fread(obj.tcp_port, 8, 'uint8');
-            obj.current_coor = byte2coor(byte_array);
+            [obj.current_coor(1), obj.current_coor(2), obj.current_coor(3)] = byte2coor(byte_array(1),byte_array(2),byte_array(3),byte_array(4),byte_array(5),byte_array(6));
         end
         
     end
